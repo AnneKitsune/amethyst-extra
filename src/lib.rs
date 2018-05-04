@@ -14,7 +14,7 @@ extern crate ron;
 extern crate log;
 extern crate dirty;
 
-use amethyst::assets::{Loader,AssetStorage,Handle};
+use amethyst::assets::{Loader,AssetStorage,Handle,Format};
 use amethyst::renderer::{PosTex,VirtualKeyCode,Event,WindowEvent,KeyboardInput,Mesh};
 use amethyst::ecs::prelude::{World,System,Read,Write,VecStorage,Entities,ReadStorage,WriteStorage,Component,Resources,Join,SystemData};
 use amethyst::core::timing::Time;
@@ -42,12 +42,95 @@ use dirty::Dirty;
 /// get("sprites/player.png") -> /assets/mod1/sprites/player.png
 /// get("models/cube.obj") -> /assets/base/models/cube.obj
 /// get("sounds/click.ogg") -> Unknown.
+///
+///
+/// yet to resolve: asset pack ordering & deps
 struct AssetLoader{
     base_path: String,
     default_pack: String,
+    asset_packs: Vec<String>,
+}
+
+impl AssetLoader{
+    pub fn resolve_path(&self, path: &str) -> Option<String> {
+        let mut res: Option<String> = None;
+
+        // Try to get from default path
+        res = resolve_path_for_path(path,self.default_pack);
+
+        // Try to find overrides
+        for p in self.get_asset_packs(){
+            if p != self.default_pack{
+                if let Some(r) = resolve_path_for_pack(path,p){
+                    res = Some(r);
+                }
+            }
+        }
+
+        res
+    }
+    fn resolve_path_for_pack(&self, path: &str, pack: String) -> Option<String> {
+
+    }
+    pub fn get_asset_packs(&mut self) -> &Vec<String>{
+        let mut buf: Option<Vec<String>> = None;
+        if self.asset_packs.length() == 0{
+            if let Some(elems) = fs::read_dir(self.base_path){
+                buf = Some(elems.map(|e|{
+                    String::from(e.path().to_str().unwrap().remove_head(base_path.length()))
+                }).collect());
+            }else{
+                error!("Failed to find base_path directory for asset loading: {}",self.base_path);
+            }
+        }
+
+        if let Some(v) = buf{
+            self.asset_packs = buf;
+        }
+
+        &self.asset_packs
+    }
+    pub fn get_asset_handle<T>(path: &str, res: Resources) -> Handle<T>{
+        //fetch assetloaderinternal<T> from Resources
+    }
+    pub fn get_asset<T>(path: &str, res: Resources) -> Option<&T>{
+
+    }
+    pub fn load<T,F>(path: String, format: F, res:Resources) -> Handle<T>{
+        let p = resolve_path(path);
+        let loader = world.read_resource::<Loader>();
+        let handle: Handle<T> = loader.load(&p,format,(),(),&world.read_resource());
+        world.write_resource::<AssetLoaderInternal<T>>().put(path,handle.clone());
+        handle
+    }
+    pub fn unload<T>(path: String, res: Resources){
+        res.write::<AssetLoaderInternal<T>>().remove(path);
+    }
 }
 
 impl Component for AssetLoader{
+    type Storage = VecStorage<Self>;
+}
+
+#[derive(Default)]
+struct AssetLoaderInternal<T>{
+    /// Map path to asset handle.
+    pub assets: HashMap<String,Handle<T>>,
+}
+
+impl<T> AssetLoaderInternal<T>{
+    pub fn put(&mut self,path: String, handle: Handle<T>) {
+
+    }
+    pub fn get(&mut self, path: String) -> Option<&Handle<T>>{
+
+    }
+    pub fn remove(&mut self, path: String) -> Option<Handle<T>>{
+
+    }
+}
+
+impl<T> Component for AssetLoaderInternal<T>{
     type Storage = VecStorage<Self>;
 }
 
@@ -227,8 +310,4 @@ impl<'a> System<'a> for TimedDestroySystem{
   item/inventory system
   *localisation
 
-  DestroyAt component
-  once the target time has past, destroy the entity
-
-  AssetManager
 */
