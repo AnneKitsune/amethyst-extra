@@ -14,17 +14,20 @@ extern crate ron;
 extern crate log;
 extern crate dirty;
 
-use amethyst::assets::{Loader,AssetStorage,Handle,Format};
-use amethyst::renderer::{PosTex,VirtualKeyCode,Event,WindowEvent,KeyboardInput,Mesh};
+use amethyst::assets::{Loader,AssetStorage,Handle,Format,Asset,SimpleFormat};
+use amethyst::renderer::{PosTex,VirtualKeyCode,Event,WindowEvent,KeyboardInput,Mesh,ObjFormat};
 use amethyst::ecs::prelude::{World,System,Read,Write,VecStorage,Entities,ReadStorage,WriteStorage,Component,Resources,Join,SystemData};
 use amethyst::core::timing::Time;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::marker::PhantomData;
 use std::fs::File;
+use std::fs;
+use std::path::Path;
 use std::io::Read as _IORead;
 use std::io::Write as _IOWrite;
 use dirty::Dirty;
+use std::collections::HashMap;
 
 /// Loads asset from the so-called asset packs
 /// It caches assets which you can manually load or unload on demand, or load automatically.
@@ -39,29 +42,30 @@ use dirty::Dirty;
 /// /assets/mod1/sounds/click.ogg
 /// /assets/mod2/sounds/click.ogg
 ///
-/// get("sprites/player.png") -> /assets/mod1/sprites/player.png
-/// get("models/cube.obj") -> /assets/base/models/cube.obj
-/// get("sounds/click.ogg") -> Unknown.
+/// get::<Texture>("sprites/player.png") -> /assets/mod1/sprites/player.png
+/// get::<Mesh>("models/cube.obj") -> /assets/base/models/cube.obj
+/// get::<Audio>("sounds/click.ogg") -> Unknown.
 ///
 ///
 /// yet to resolve: asset pack ordering & deps
 struct AssetLoader{
+    /// Should end with a /
     base_path: String,
     default_pack: String,
     asset_packs: Vec<String>,
 }
 
 impl AssetLoader{
-    pub fn resolve_path(&self, path: &str) -> Option<String> {
+    pub fn resolve_path(&mut self, path: &str) -> Option<String> {
         let mut res: Option<String> = None;
 
         // Try to get from default path
-        res = resolve_path_for_path(path,self.default_pack);
+        res = self.resolve_path_for_pack(path,&self.default_pack);
 
         // Try to find overrides
         for p in self.get_asset_packs(){
-            if p != self.default_pack{
-                if let Some(r) = resolve_path_for_pack(path,p){
+            if *p != self.default_pack{
+                if let Some(r) = self.resolve_path_for_pack(path,p){
                     res = Some(r);
                 }
             }
@@ -69,15 +73,21 @@ impl AssetLoader{
 
         res
     }
-    fn resolve_path_for_pack(&self, path: &str, pack: String) -> Option<String> {
-
+    fn resolve_path_for_pack(&self, path: &str, pack: &str) -> Option<String> {
+        let abs = self.base_path + pack + "/" + &path.to_owned();
+        let path = Path::new(&abs);
+        if path.exists(){
+            Some(abs)
+        }else{
+            None
+        }
     }
     pub fn get_asset_packs(&mut self) -> &Vec<String>{
         let mut buf: Option<Vec<String>> = None;
-        if self.asset_packs.length() == 0{
-            if let Some(elems) = fs::read_dir(self.base_path){
+        if self.asset_packs.len() == 0{
+            if let Ok(elems) = fs::read_dir(self.base_path){
                 buf = Some(elems.map(|e|{
-                    String::from(e.path().to_str().unwrap().remove_head(base_path.length()))
+                    e.unwrap().path().to_str().unwrap()[self.base_path.len()..].to_string()
                 }).collect());
             }else{
                 error!("Failed to find base_path directory for asset loading: {}",self.base_path);
@@ -85,27 +95,64 @@ impl AssetLoader{
         }
 
         if let Some(v) = buf{
-            self.asset_packs = buf;
+            self.asset_packs = v;
         }
 
         &self.asset_packs
     }
-    pub fn get_asset_handle<T>(path: &str, res: Resources) -> Handle<T>{
-        //fetch assetloaderinternal<T> from Resources
+    pub fn get_asset_handle<T>(path: &str, ali: &mut AssetLoaderInternal<T>) -> Option<Handle<T>>{
+        ali.assets.get(path).cloned()
     }
-    pub fn get_asset<T>(path: &str, res: Resources) -> Option<&T>{
+    pub fn get_asset<'a,T>(path: &str, ali: &mut AssetLoaderInternal<T>, storage: &'a mut AssetStorage<T>) -> Option<&'a T> where T: Asset{
+        if let Some(h) = AssetLoader::get_asset_handle::<T>(path,ali){
+            storage.get(&h)
+        }else{
+            None
+        }
+    }
 
+    pub fn get_asset_or_load<'a,T>(&mut self, path: &str,ali: &mut AssetLoaderInternal<T>, storage: &'a mut AssetStorage<T>,loader: Loader) -> Option<&'a T> where T: Asset{
+        if let Some(a) = AssetLoader::get_asset::<T>(path,ali,storage){
+            return Some(a);
+        }
+        if let Some(h) = self.load_from_extension::<T>(path,ali,storage,loader){
+            return storage.get(&h);
+        }
+        None
     }
-    pub fn load<T,F>(path: String, format: F, res:Resources) -> Handle<T>{
-        let p = resolve_path(path);
-        let loader = world.read_resource::<Loader>();
-        let handle: Handle<T> = loader.load(&p,format,(),(),&world.read_resource());
-        world.write_resource::<AssetLoaderInternal<T>>().put(path,handle.clone());
-        handle
+
+    pub fn load<T,F>(&mut self, path: &str, format: F, ali: &mut AssetLoaderInternal<T>, storage: &mut AssetStorage<T>, loader: Loader) -> Option<Handle<T>> where T: Asset, F: SimpleFormat<T>+Clone+Send+Sync{
+        if let Some(p) = self.resolve_path(path){
+            let handle: Handle<T> = loader.load(p,format,(),(),storage);
+            ali.assets.insert(String::from(path),handle.clone());
+            return Some(handle);
+        }
+        None
     }
-    pub fn unload<T>(path: String, res: Resources){
-        res.write::<AssetLoaderInternal<T>>().remove(path);
+    pub fn unload<T>(path: &str, ali: &mut AssetLoaderInternal<T>){
+        ali.assets.remove(path);
     }
+
+    pub fn load_from_extension<T>(&mut self,path: &str,ali: &mut AssetLoaderInternal<T>, storage: &mut AssetStorage<T>, loader: Loader) -> Option<Handle<T>> where T: Asset{
+        let ext = AssetLoader::extension_from_path(path);
+        match ext{
+            "obj" => Some(self.load::<Mesh,ObjFormat>(path,ObjFormat,ali,storage,loader)),
+            _ => None,
+        }
+    }
+
+    pub fn auto_load_from_extension(&mut self,path: &str,res: Resources){
+        let ext = AssetLoader::extension_from_path(path);
+        match ext{
+            "obj" => Some(self.load_from_extension::<Mesh>(ext,res.fetch_mut::<AssetLoaderInternal<Mesh>>(),res.fetch_mut::<AssetStorage<Mesh>>(),res.fetch())),
+            _ => None,
+        };
+    }
+
+    pub fn extension_from_path(path: &str) -> &str{
+        path.split(".").as_slice().last().clone()
+    }
+
 }
 
 impl Component for AssetLoader{
@@ -118,21 +165,22 @@ struct AssetLoaderInternal<T>{
     pub assets: HashMap<String,Handle<T>>,
 }
 
-impl<T> AssetLoaderInternal<T>{
-    pub fn put(&mut self,path: String, handle: Handle<T>) {
-
-    }
-    pub fn get(&mut self, path: String) -> Option<&Handle<T>>{
-
-    }
-    pub fn remove(&mut self, path: String) -> Option<Handle<T>>{
-
-    }
-}
-
-impl<T> Component for AssetLoaderInternal<T>{
+impl<T> Component for AssetLoaderInternal<T> where T: Send+Sync+'static{
     type Storage = VecStorage<Self>;
 }
+
+/*pub trait AssetToFormat<T> where T: Sized{
+    fn get_format() -> Format<T>;
+}
+
+impl AssetToFormat<Mesh> for Mesh{
+    fn get_format() -> Format<Mesh>{
+        ObjFormat
+    }
+}*/
+
+
+
 
 pub fn gen_rectangle_mesh(
     w: f32,
@@ -308,6 +356,5 @@ impl<'a> System<'a> for TimedDestroySystem{
   - {modname}/localisation/{player_lang}.txt
   *http calls utils
   item/inventory system
-  *localisation
 
 */
