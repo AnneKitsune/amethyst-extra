@@ -16,8 +16,10 @@ extern crate dirty;
 
 use amethyst::assets::{Loader,AssetStorage,Handle,Format,Asset,SimpleFormat};
 use amethyst::renderer::{PosTex,VirtualKeyCode,Event,WindowEvent,KeyboardInput,Mesh,ObjFormat};
-use amethyst::ecs::prelude::{World,System,Read,Write,VecStorage,Entities,ReadStorage,WriteStorage,Component,Resources,Join,SystemData};
+use amethyst::ecs::prelude::{World,System,Read,Write,VecStorage,Entities,ReadStorage,WriteStorage,Component,Resources,Join,SystemData,Dispatcher};
+use amethyst::ecs::storage::NullStorage;
 use amethyst::core::timing::Time;
+use amethyst::prelude::*;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::marker::PhantomData;
@@ -347,6 +349,56 @@ impl<'a> System<'a> for TimedDestroySystem{
 
     }
 }
+
+pub struct EmptyState;
+impl State for EmptyState{
+
+}
+
+pub struct RemoveOnStateChange;
+impl Component for RemoveOnStateChange{
+    type Storage = NullStorage<Self>;
+}
+
+pub struct ComplexState<T> where T: State{
+    internal: T,
+    dispatch: Option<Dispatcher<'static,'static>>,
+}
+
+impl<T> ComplexState<T>{
+
+    pub fn new(state: T, dispatch: Dispatcher) -> Self {
+        ComplexState{
+            internal: state,
+            dispatch,
+        }
+    }
+}
+
+impl<T> State for ComplexState<T> where T: State{
+    //forward everything to internal state, but add operations to remove collected entities
+    fn on_start(&mut self, world: &mut World) {
+        if let Some(dis) = self.dispatch{
+            dis.setup(&mut world.res);
+        }
+        self.internal.on_start(&mut world);
+    }
+
+    fn update(&mut self, world: &mut World) -> Trans {
+        if let Some(dis) = self.dispatch{
+            dis.dispatch(&mut world.res);
+        }
+        self.internal.update(&mut world)
+    }
+
+    fn handle_event(&mut self, world: &mut World, event: Event) -> Trans {
+        self.internal.handle_event(&mut world, event)
+    }
+    /*fn on_state_change(&mut self, world: &mut World){
+        // for all entities with RemoveOnStateChange, delete them
+    }*/
+}
+
 
 /*
   * = could do it in the engine directly
