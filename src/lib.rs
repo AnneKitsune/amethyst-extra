@@ -1,11 +1,3 @@
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
-
 extern crate amethyst;
 #[macro_use]
 extern crate serde;
@@ -50,7 +42,7 @@ use std::collections::HashMap;
 ///
 ///
 /// yet to resolve: asset pack ordering & deps
-struct AssetLoader{
+pub struct AssetLoader{
     /// Should end with a /
     base_path: String,
     default_pack: String,
@@ -58,16 +50,27 @@ struct AssetLoader{
 }
 
 impl AssetLoader{
-    pub fn resolve_path(&mut self, path: &str) -> Option<String> {
+
+    pub fn new(base_path: String, default_pack: String) -> Self{
+        let mut al = AssetLoader{
+            base_path,
+            default_pack,
+            asset_packs: Vec::new(),
+        };
+        al.get_asset_packs();
+        al
+    }
+
+    pub fn resolve_path(&self, path: &str) -> Option<String> {
         let mut res: Option<String> = None;
 
         // Try to get from default path
         res = self.resolve_path_for_pack(path,&self.default_pack);
 
         // Try to find overrides
-        for p in self.get_asset_packs(){
-            if *p != self.default_pack{
-                if let Some(r) = self.resolve_path_for_pack(path,p){
+        for p in &self.asset_packs{
+            if p != &self.default_pack{
+                if let Some(r) = self.resolve_path_for_pack(path,&p){
                     res = Some(r);
                 }
             }
@@ -76,10 +79,10 @@ impl AssetLoader{
         res
     }
     fn resolve_path_for_pack(&self, path: &str, pack: &str) -> Option<String> {
-        let abs = self.base_path + pack + "/" + &path.to_owned();
+        let abs = self.base_path.to_owned() + pack + "/" + &path.to_owned();
         let path = Path::new(&abs);
         if path.exists(){
-            Some(abs)
+            Some(abs.clone())
         }else{
             None
         }
@@ -87,7 +90,7 @@ impl AssetLoader{
     pub fn get_asset_packs(&mut self) -> &Vec<String>{
         let mut buf: Option<Vec<String>> = None;
         if self.asset_packs.len() == 0{
-            if let Ok(elems) = fs::read_dir(self.base_path){
+            if let Ok(elems) = fs::read_dir(&self.base_path){
                 buf = Some(elems.map(|e|{
                     e.unwrap().path().to_str().unwrap()[self.base_path.len()..].to_string()
                 }).collect());
@@ -102,10 +105,10 @@ impl AssetLoader{
 
         &self.asset_packs
     }
-    pub fn get_asset_handle<T>(path: &str, ali: &mut AssetLoaderInternal<T>) -> Option<Handle<T>>{
+    pub fn get_asset_handle<T>(path: &str, ali: &AssetLoaderInternal<T>) -> Option<Handle<T>>{
         ali.assets.get(path).cloned()
     }
-    pub fn get_asset<'a,T>(path: &str, ali: &mut AssetLoaderInternal<T>, storage: &'a mut AssetStorage<T>) -> Option<&'a T> where T: Asset{
+    pub fn get_asset<'a,T>(path: &str, ali: &AssetLoaderInternal<T>, storage: &'a AssetStorage<T>) -> Option<&'a T> where T: Asset{
         if let Some(h) = AssetLoader::get_asset_handle::<T>(path,ali){
             storage.get(&h)
         }else{
@@ -113,19 +116,22 @@ impl AssetLoader{
         }
     }
 
-    pub fn get_asset_or_load<'a,T>(&mut self, path: &str,ali: &mut AssetLoaderInternal<T>, storage: &'a mut AssetStorage<T>,loader: Loader) -> Option<&'a T> where T: Asset{
-        if let Some(a) = AssetLoader::get_asset::<T>(path,ali,storage){
-            return Some(a);
+    pub fn get_asset_or_load<'a,T,F>(&mut self, path: &str,format: F, options: F::Options, ali: &mut AssetLoaderInternal<T>, storage: &'a mut AssetStorage<T>,loader: Loader) -> Option<&'a T>
+        where T: Asset, F: SimpleFormat<T>+Clone+Send+Sync+'static{
+        if let Some(h) = AssetLoader::get_asset_handle::<T>(path,ali){
+            return storage.get(&h);
+            //return Some(a);
         }
-        if let Some(h) = self.load_from_extension::<T>(path,ali,storage,loader){
+        if let Some(h) = self.load::<T,F>(path, format, options,ali,storage,loader){
             return storage.get(&h);
         }
         None
     }
 
-    pub fn load<T,F>(&mut self, path: &str, format: F, ali: &mut AssetLoaderInternal<T>, storage: &mut AssetStorage<T>, loader: Loader) -> Option<Handle<T>> where T: Asset, F: SimpleFormat<T>+Clone+Send+Sync{
+    pub fn load<T,F>(&self, path: &str, format: F, options: F::Options, ali: &mut AssetLoaderInternal<T>, storage: &mut AssetStorage<T>, loader: Loader) -> Option<Handle<T>>
+        where T: Asset, F: SimpleFormat<T>+Clone+Send+Sync+'static{
         if let Some(p) = self.resolve_path(path){
-            let handle: Handle<T> = loader.load(p,format,(),(),storage);
+            let handle: Handle<T> = loader.load(p,format,options,(),storage);
             ali.assets.insert(String::from(path),handle.clone());
             return Some(handle);
         }
@@ -135,7 +141,7 @@ impl AssetLoader{
         ali.assets.remove(path);
     }
 
-    pub fn load_from_extension<T>(&mut self,path: &str,ali: &mut AssetLoaderInternal<T>, storage: &mut AssetStorage<T>, loader: Loader) -> Option<Handle<T>> where T: Asset{
+    /*pub fn load_from_extension<T>(&mut self,path: &str,ali: &mut AssetLoaderInternal<T>, storage: &mut AssetStorage<T>, loader: Loader) -> Option<Handle<T>> where T: Asset{
         let ext = AssetLoader::extension_from_path(path);
         match ext{
             "obj" => Some(self.load::<Mesh,ObjFormat>(path,ObjFormat,ali,storage,loader)),
@@ -149,11 +155,11 @@ impl AssetLoader{
             "obj" => Some(self.load_from_extension::<Mesh>(ext,res.fetch_mut::<AssetLoaderInternal<Mesh>>(),res.fetch_mut::<AssetStorage<Mesh>>(),res.fetch())),
             _ => None,
         };
-    }
+    }*/
 
-    pub fn extension_from_path(path: &str) -> &str{
+    /*pub fn extension_from_path(path: &str) -> &str{
         path.split(".").as_slice().last().clone()
-    }
+    }*/
 
 }
 
@@ -162,7 +168,7 @@ impl Component for AssetLoader{
 }
 
 #[derive(Default)]
-struct AssetLoaderInternal<T>{
+pub struct AssetLoaderInternal<T>{
     /// Map path to asset handle.
     pub assets: HashMap<String,Handle<T>>,
 }
@@ -243,7 +249,7 @@ pub fn key_pressed_from_event(key: VirtualKeyCode, event: &Event) -> bool{
 pub fn window_closed(event: &Event) -> bool{
     match event {
         &Event::WindowEvent { ref event, .. } => match event {
-            &WindowEvent::Closed => true,
+            &WindowEvent::CloseRequested => true,
             _ => false,
         },
         _ => false,
@@ -355,6 +361,7 @@ impl State for EmptyState{
 
 }
 
+#[derive(Default)]
 pub struct RemoveOnStateChange;
 impl Component for RemoveOnStateChange{
     type Storage = NullStorage<Self>;
@@ -365,9 +372,9 @@ pub struct ComplexState<T> where T: State{
     dispatch: Option<Dispatcher<'static,'static>>,
 }
 
-impl<T> ComplexState<T>{
+impl<T> ComplexState<T> where T: State{
 
-    pub fn new(state: T, dispatch: Dispatcher) -> Self {
+    pub fn new(state: T, dispatch: Option<Dispatcher<'static,'static>>) -> Self {
         ComplexState{
             internal: state,
             dispatch,
@@ -377,21 +384,21 @@ impl<T> ComplexState<T>{
 
 impl<T> State for ComplexState<T> where T: State{
     //forward everything to internal state, but add operations to remove collected entities
-    fn on_start(&mut self, world: &mut World) {
-        if let Some(dis) = self.dispatch{
+    fn on_start(&mut self, mut world: &mut World) {
+        if let Some(dis) = self.dispatch.as_mut(){
             dis.setup(&mut world.res);
         }
         self.internal.on_start(&mut world);
     }
 
-    fn update(&mut self, world: &mut World) -> Trans {
-        if let Some(dis) = self.dispatch{
+    fn update(&mut self, mut world: &mut World) -> Trans {
+        if let Some(dis) = self.dispatch.as_mut(){
             dis.dispatch(&mut world.res);
         }
         self.internal.update(&mut world)
     }
 
-    fn handle_event(&mut self, world: &mut World, event: Event) -> Trans {
+    fn handle_event(&mut self, mut world: &mut World, event: Event) -> Trans {
         self.internal.handle_event(&mut world, event)
     }
     /*fn on_state_change(&mut self, world: &mut World){
@@ -399,6 +406,14 @@ impl<T> State for ComplexState<T> where T: State{
     }*/
 }
 
+
+pub struct NavigationButton{
+    pub target: fn() -> Trans,
+}
+
+impl Component for NavigationButton{
+    type Storage = VecStorage<Self>;
+}
 
 /*
   * = could do it in the engine directly
@@ -410,3 +425,16 @@ impl<T> State for ComplexState<T> where T: State{
   item/inventory system
 
 */
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn asset_loader_resolve_path() {
+        let mut al = AssetLoader::new(format!("{}/assets/", env!("CARGO_MANIFEST_DIR")),"base");
+        assert_eq!(al.resolve_path("test/test.txt"),"assets/base/test/test.txt")
+    }
+    #[test]
+    fn asset_loader_resolve_path_override() {
+        let mut al = AssetLoader::new(format!("{}/assets/", env!("CARGO_MANIFEST_DIR")),"base");
+        assert_eq!(al.resolve_path("test/test2.txt"),"assets/override/test/test2.txt")
+    }
+}
