@@ -23,6 +23,7 @@ use std::io::Write as _IOWrite;
 use dirty::Dirty;
 use std::collections::HashMap;
 
+
 /// Loads asset from the so-called asset packs
 /// It caches assets which you can manually load or unload on demand, or load automatically.
 /// It also tries to infer the type to load from the file extension.
@@ -356,8 +357,8 @@ impl<'a> System<'a> for TimedDestroySystem{
     }
 }
 
-pub struct EmptyState;
-impl State for EmptyState{
+/*pub struct EmptyState;
+impl<'a,'b> State<GameData<'a,'b>> for EmptyState{
 
 }
 
@@ -367,12 +368,12 @@ impl Component for RemoveOnStateChange{
     type Storage = NullStorage<Self>;
 }
 
-pub struct ComplexState<T> where T: State{
+pub struct ComplexState<'a,'b,T> where T: State<GameData<'a,'b>>{
     internal: T,
     dispatch: Option<Dispatcher<'static,'static>>,
 }
 
-impl<T> ComplexState<T> where T: State{
+impl<'a,'b,T> ComplexState<'a,'b,T> where T: State<GameData<'a,'b>>{
 
     pub fn new(state: T, dispatch: Option<Dispatcher<'static,'static>>) -> Self {
         ComplexState{
@@ -382,7 +383,7 @@ impl<T> ComplexState<T> where T: State{
     }
 }
 
-impl<T> State for ComplexState<T> where T: State{
+impl<'a,'b,T> State for ComplexState<T> where T: State<GameData<'a,'b>>{
     //forward everything to internal state, but add operations to remove collected entities
     fn on_start(&mut self, mut world: &mut World) {
         if let Some(dis) = self.dispatch.as_mut(){
@@ -401,9 +402,6 @@ impl<T> State for ComplexState<T> where T: State{
     fn handle_event(&mut self, mut world: &mut World, event: Event) -> Trans {
         self.internal.handle_event(&mut world, event)
     }
-    /*fn on_state_change(&mut self, world: &mut World){
-        // for all entities with RemoveOnStateChange, delete them
-    }*/
 }
 
 
@@ -413,7 +411,7 @@ pub struct NavigationButton{
 
 impl Component for NavigationButton{
     type Storage = VecStorage<Self>;
-}
+}*/
 
 /*
   * = could do it in the engine directly
