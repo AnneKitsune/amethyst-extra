@@ -7,11 +7,18 @@ extern crate log;
 extern crate dirty;
 
 use amethyst::assets::{Loader,AssetStorage,Handle,Format,Asset,SimpleFormat};
-use amethyst::renderer::{PosTex,VirtualKeyCode,Event,WindowEvent,KeyboardInput,Mesh,ObjFormat};
+//use amethyst::renderer::{PosTex,VirtualKeyCode,Event,WindowEvent,KeyboardInput,Mesh,ObjFormat};
+use amethyst::animation::AnimationBundle;
+use amethyst::audio::{AudioBundle,SourceHandle};
+use amethyst::ui::UiBundle;
+use amethyst::input::InputBundle;
+use amethyst::core::TransformBundle;
+use amethyst::renderer::*;
 use amethyst::ecs::prelude::{World,System,Read,Write,VecStorage,Entities,ReadStorage,WriteStorage,Component,Resources,Join,SystemData,Dispatcher};
 use amethyst::ecs::storage::NullStorage;
 use amethyst::core::timing::Time;
 use amethyst::prelude::*;
+use amethyst::Result;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use std::marker::PhantomData;
@@ -21,6 +28,8 @@ use std::path::Path;
 use std::io::Read as _IORead;
 use std::io::Write as _IOWrite;
 use dirty::Dirty;
+use std::iter::Cycle;
+use std::vec::IntoIter;
 use std::collections::HashMap;
 
 
@@ -230,6 +239,37 @@ pub fn gen_rectangle_vertices(w: f32, h: f32) -> Vec<PosTex> {
     data
 }
 
+/// Generates vertices for a circle. The circle will be made of `resolution`
+/// triangles.
+fn generate_circle_vertices(radius: f32, resolution: usize) -> Vec<PosTex> {
+    use std::f32::consts::PI;
+
+    let mut vertices = Vec::with_capacity(resolution * 3);
+    let angle_offset = 2.0 * PI / resolution as f32;
+    // Helper function to generate the vertex at the specified angle.
+    let generate_vertex = |angle: f32| {
+        let x = angle.cos();
+        let y = angle.sin();
+        PosTex {
+            position: [x * radius, y * radius, 0.0],
+            tex_coord: [x, y],
+        }
+    };
+
+    for index in 0..resolution {
+        vertices.push(PosTex {
+            position: [0.0, 0.0, 0.0],
+            tex_coord: [0.0, 0.0],
+        });
+
+        vertices.push(generate_vertex(angle_offset * index as f32));
+        vertices.push(generate_vertex(angle_offset * (index + 1) as f32));
+    }
+
+    vertices
+}
+
+
 pub fn key_pressed_from_event(key: VirtualKeyCode, event: &Event) -> bool{
     match event {
         &Event::WindowEvent { ref event, .. } => match event {
@@ -256,6 +296,46 @@ pub fn window_closed(event: &Event) -> bool{
         _ => false,
     }
 }
+
+pub struct Music {
+    pub music: Cycle<IntoIter<SourceHandle>>,
+}
+
+pub fn amethyst_gamedata_base() -> Result<GameDataBuilder<'static,'static>>{
+    amethyst::start_logger(Default::default());
+
+    let display_config_path = format!(
+        "{}/assets/base/config/display.ron",
+        env!("CARGO_MANIFEST_DIR")
+    );
+
+    let key_bindings_path = format!(
+        "{}/assets/base/config/input.ron",
+        env!("CARGO_MANIFEST_DIR")
+    );
+
+    GameDataBuilder::default()
+        //.with(PrefabLoaderSystem::<MyPrefabData>::default(), "", &[])
+        .with_bundle(TransformBundle::new())?
+        .with_bundle(
+            InputBundle::<String, String>::new().with_bindings_from_file(&key_bindings_path)?,
+        )?
+        .with_bundle(UiBundle::<String, String>::new())?
+        .with_bundle(
+            AnimationBundle::<u32, Material>::new(
+                "animation_control_system",
+                "sampler_interpolation_system",
+            )
+        )?
+        .with_bundle(AudioBundle::new(|music: &mut Music| music.music.next()))?
+        .with_basic_renderer(display_config_path, DrawShaded::<PosNormTex>::new(), false)
+}
+
+/*pub fn build_amethyst(game_data_builder: GameDataBuilder<'static,'static>, init_state: State<GameData<'static,'static>>) -> Result<Application<GameData<'static,'static>>>{
+    let resources_directory = format!("{}/assets/base", env!("CARGO_MANIFEST_DIR"));
+    let game_data = game_data_builder.build()?;
+    Application::build(resources_directory, init_state)?.build(game_data)
+}*/
 
 /// If the tracked resource changes, this will be checked to make sure it is a proper time to save.
 pub trait ShouldSave{
