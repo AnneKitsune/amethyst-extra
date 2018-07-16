@@ -14,8 +14,9 @@ use amethyst::ui::UiBundle;
 use amethyst::input::InputBundle;
 use amethyst::core::TransformBundle;
 use amethyst::renderer::*;
-use amethyst::ecs::prelude::{World,System,Read,Write,VecStorage,Entities,ReadStorage,WriteStorage,Component,Resources,Join,SystemData,Dispatcher};
+use amethyst::ecs::*;
 use amethyst::ecs::storage::NullStorage;
+use amethyst::core::cgmath::Ortho;
 use amethyst::core::timing::Time;
 use amethyst::prelude::*;
 use amethyst::Result;
@@ -127,7 +128,7 @@ impl AssetLoader{
     }
 
     pub fn get_asset_or_load<'a,T,F>(&mut self, path: &str,format: F, options: F::Options, ali: &mut AssetLoaderInternal<T>, storage: &'a mut AssetStorage<T>,loader: Loader) -> Option<&'a T>
-        where T: Asset, F: SimpleFormat<T>+Clone+Send+Sync+'static{
+        where T: Asset, F: Format<T>+'static{
         if let Some(h) = AssetLoader::get_asset_handle::<T>(path,ali){
             return storage.get(&h);
             //return Some(a);
@@ -139,7 +140,7 @@ impl AssetLoader{
     }
 
     pub fn load<T,F>(&self, path: &str, format: F, options: F::Options, ali: &mut AssetLoaderInternal<T>, storage: &mut AssetStorage<T>, loader: Loader) -> Option<Handle<T>>
-        where T: Asset, F: SimpleFormat<T>+Clone+Send+Sync+'static{
+        where T: Asset, F: Format<T>+'static{
         if let Some(p) = self.resolve_path(path){
             let handle: Handle<T> = loader.load(p,format,options,(),storage);
             ali.assets.insert(String::from(path),handle.clone());
@@ -301,17 +302,21 @@ pub struct Music {
     pub music: Cycle<IntoIter<SourceHandle>>,
 }
 
-pub fn amethyst_gamedata_base() -> Result<GameDataBuilder<'static,'static>>{
+
+
+
+// TODO: Broken af dependency of TransformBundle pls fix asap lmao
+pub fn amethyst_gamedata_base_2d(base: &str) -> Result<GameDataBuilder<'static,'static>>{
     amethyst::start_logger(Default::default());
 
     let display_config_path = format!(
         "{}/assets/base/config/display.ron",
-        env!("CARGO_MANIFEST_DIR")
+        base
     );
 
     let key_bindings_path = format!(
         "{}/assets/base/config/input.ron",
-        env!("CARGO_MANIFEST_DIR")
+        base
     );
 
     GameDataBuilder::default()
@@ -328,7 +333,8 @@ pub fn amethyst_gamedata_base() -> Result<GameDataBuilder<'static,'static>>{
             )
         )?
         .with_bundle(AudioBundle::new(|music: &mut Music| music.music.next()))?
-        .with_basic_renderer(display_config_path, DrawShaded::<PosNormTex>::new(), false)
+        .with(TimedDestroySystem,"timed_destroy", &[])
+        .with_basic_renderer(display_config_path, DrawFlat::<PosTex>::new(), false)
 }
 
 /*pub fn build_amethyst(game_data_builder: GameDataBuilder<'static,'static>, init_state: State<GameData<'static,'static>>) -> Result<Application<GameData<'static,'static>>>{
@@ -363,7 +369,7 @@ impl<T> AutoSaveSystem<T>{
 
 impl<'a,T> System<'a> for AutoSaveSystem<T> where T: Serialize+DeserializeOwned+Default+ShouldSave+Send+Sync+'static{
     type SystemData = (Write<'a,Dirty<T>>,);
-    fn setup(&mut self, res: &mut Resources){
+    fn setup(&mut self, res: &mut amethyst::ecs::Resources){
         // attempt loading
         if let Ok(mut f) = File::open(&self.save_path){
             let mut c = String::new();
@@ -434,6 +440,33 @@ impl<'a> System<'a> for TimedDestroySystem{
             d.timer -= time.delta_seconds() as f64;
         }
 
+    }
+}
+
+#[derive(Default)]
+pub struct NormalOrthoCameraSystem{
+    aspect_ratio_cache: f32,
+}
+
+impl<'a> System<'a> for NormalOrthoCameraSystem{
+    type SystemData = (ReadExpect<'a, ScreenDimensions>, WriteStorage<'a, Camera>);
+    fn run(&mut self, (dimensions, mut cameras): Self::SystemData){
+        let aspect = dimensions.aspect_ratio();
+        println!("Aspect ratio: {}", aspect);
+        if aspect != self.aspect_ratio_cache{
+            self.aspect_ratio_cache = aspect;
+
+            // If negative, will remove on the x axis instead of stretching the y
+            let x_offset = (aspect - 1.0) / 2.0;
+
+            for mut camera in (&mut cameras).join(){
+                camera.proj = Ortho{left: -x_offset,right: 1.0 + x_offset,bottom: 0.0,top: 1.0,near: 0.1,far: 2000.0}.into();
+            }
+        }
+
+        for mut camera in (&mut cameras).join(){
+            camera.proj = Ortho{left: 0.0,right: 1.0,bottom: -80.0,top: 1.0,near: 0.1,far: 2000.0}.into();
+        }
     }
 }
 
