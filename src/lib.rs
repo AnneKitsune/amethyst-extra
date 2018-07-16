@@ -62,14 +62,40 @@ pub struct AssetLoader{
 
 impl AssetLoader{
 
-    pub fn new(base_path: String, default_pack: String) -> Self{
+    pub fn new(base_path: &str, default_pack: &str) -> Self{
         let mut al = AssetLoader{
-            base_path,
-            default_pack,
+            base_path: AssetLoader::sanitize_path_trail_only(&base_path),
+            default_pack: AssetLoader::sanitize_path(&default_pack),
             asset_packs: Vec::new(),
         };
         al.get_asset_packs();
         al
+    }
+
+    fn sanitize_path_trail_only(path: &str) -> String {
+        let mut out = path.to_string();
+        let mut chars = path.chars();
+        let last = chars.last().unwrap();
+        if last == '/' {
+          let idx = out.len() - 1;
+          out.remove(idx);
+        }
+        out
+    }
+    
+    fn sanitize_path(path: &str) -> String {
+        let mut out = path.to_string();
+        let mut chars = path.chars();
+        let first = chars.next().expect("An empty path was specified!");
+        let last = chars.last().unwrap();
+        if first == '/' {
+          out.remove(0);
+        }
+        if last == '/' {
+          let idx = out.len() - 1;
+          out.remove(idx);
+        }
+        out
     }
 
     pub fn resolve_path(&self, path: &str) -> Option<String> {
@@ -90,7 +116,7 @@ impl AssetLoader{
         res
     }
     fn resolve_path_for_pack(&self, path: &str, pack: &str) -> Option<String> {
-        let abs = self.base_path.to_owned() + pack + "/" + &path.to_owned();
+        let abs = self.base_path.to_owned()+ "/" + pack + "/" + &path.to_owned();
         let path = Path::new(&abs);
         if path.exists(){
             Some(abs.clone())
@@ -103,7 +129,9 @@ impl AssetLoader{
         if self.asset_packs.len() == 0{
             if let Ok(elems) = fs::read_dir(&self.base_path){
                 buf = Some(elems.map(|e|{
-                    e.unwrap().path().to_str().unwrap()[self.base_path.len()..].to_string()
+                    let path = &e.unwrap().path();
+                    let tmp = &path.to_str().unwrap()[self.base_path.len()..];
+                    AssetLoader::sanitize_path(&tmp)
                 }).collect());
             }else{
                 error!("Failed to find base_path directory for asset loading: {}",self.base_path);
@@ -148,6 +176,8 @@ impl AssetLoader{
         }
         None
     }
+    
+    /// Only removes the internal Handle<T>. To truly unload the asset, you need to drop all handles that you have to it.
     pub fn unload<T>(path: &str, ali: &mut AssetLoaderInternal<T>){
         ali.assets.remove(path);
     }
@@ -186,6 +216,44 @@ pub struct AssetLoaderInternal<T>{
 
 impl<T> Component for AssetLoaderInternal<T> where T: Send+Sync+'static{
     type Storage = VecStorage<Self>;
+}
+
+#[cfg(test)]
+mod test{
+  use ::*;
+  
+  fn load_asset_loader() -> AssetLoader{
+    AssetLoader::new(&format!("{}/test/assets",env!("CARGO_MANIFEST_DIR")), "main")
+  }
+  
+  #[test]
+  fn path_sanitisation(){
+    AssetLoader::new(&format!("{}/test/assets/", env!("CARGO_MANIFEST_DIR")), "/base/");
+  }
+  
+    #[test]
+    fn asset_loader_resolve_unique_main() {
+        let mut asset_loader = load_asset_loader();
+        assert_eq!(asset_loader.resolve_path("config/unique"),Some(format!("{}/test/assets/main/config/unique",env!("CARGO_MANIFEST_DIR")).to_string()))
+    }
+    
+    #[test]
+    fn asset_loader_resolve_unique_other() {
+        let mut asset_loader = load_asset_loader();
+        assert_eq!(asset_loader.resolve_path("config/uniqueother"),Some(format!("{}/test/assets/mod1/config/uniqueother",env!("CARGO_MANIFEST_DIR")).to_string()))
+    }
+    
+    #[test]
+    fn asset_loader_resolve_path_override_single() {
+        let mut asset_loader = load_asset_loader();
+        assert_eq!(asset_loader.resolve_path("config/ov1"),Some(format!("{}/test/assets/mod1/config/ov1",env!("CARGO_MANIFEST_DIR")).to_string()))
+    }
+    
+    #[test]
+    fn asset_loader_resolve_path_override_all() {
+        let mut asset_loader = load_asset_loader();
+        assert_eq!(asset_loader.resolve_path("config/ovall"),Some(format!("{}/test/assets/mod2/config/ovall",env!("CARGO_MANIFEST_DIR")).to_string()))
+    }
 }
 
 /*pub trait AssetToFormat<T> where T: Sized{
@@ -242,7 +310,7 @@ pub fn gen_rectangle_vertices(w: f32, h: f32) -> Vec<PosTex> {
 
 /// Generates vertices for a circle. The circle will be made of `resolution`
 /// triangles.
-fn generate_circle_vertices(radius: f32, resolution: usize) -> Vec<PosTex> {
+pub fn generate_circle_vertices(radius: f32, resolution: usize) -> Vec<PosTex> {
     use std::f32::consts::PI;
 
     let mut vertices = Vec::with_capacity(resolution * 3);
@@ -536,7 +604,7 @@ impl Component for NavigationButton{
   item/inventory system
 
 */
-#[cfg(test)]
+/*#[cfg(test)]
 mod tests {
     #[test]
     fn asset_loader_resolve_path() {
@@ -548,4 +616,4 @@ mod tests {
         let mut al = AssetLoader::new(format!("{}/assets/", env!("CARGO_MANIFEST_DIR")),"base");
         assert_eq!(al.resolve_path("test/test2.txt"),"assets/override/test/test2.txt")
     }
-}
+}*/
