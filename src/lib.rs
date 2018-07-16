@@ -10,7 +10,7 @@ use amethyst::assets::{Loader,AssetStorage,Handle,Format,Asset,SimpleFormat};
 //use amethyst::renderer::{PosTex,VirtualKeyCode,Event,WindowEvent,KeyboardInput,Mesh,ObjFormat};
 use amethyst::animation::AnimationBundle;
 use amethyst::audio::{AudioBundle,SourceHandle};
-use amethyst::ui::UiBundle;
+use amethyst::ui::{UiBundle,UiText};
 use amethyst::input::InputBundle;
 use amethyst::core::TransformBundle;
 use amethyst::renderer::*;
@@ -338,7 +338,7 @@ pub fn generate_circle_vertices(radius: f32, resolution: usize) -> Vec<PosTex> {
     vertices
 }
 
-
+// check for removal
 pub fn key_pressed_from_event(key: VirtualKeyCode, event: &Event) -> bool{
     match event {
         &Event::WindowEvent { ref event, .. } => match event {
@@ -355,7 +355,7 @@ pub fn key_pressed_from_event(key: VirtualKeyCode, event: &Event) -> bool{
         _ => false,
     }
 }
-
+// check for removal
 pub fn window_closed(event: &Event) -> bool{
     match event {
         &Event::WindowEvent { ref event, .. } => match event {
@@ -369,9 +369,6 @@ pub fn window_closed(event: &Event) -> bool{
 pub struct Music {
     pub music: Cycle<IntoIter<SourceHandle>>,
 }
-
-
-
 
 // TODO: Broken af dependency of TransformBundle pls fix asap lmao
 pub fn amethyst_gamedata_base_2d(base: &str) -> Result<GameDataBuilder<'static,'static>>{
@@ -531,9 +528,49 @@ impl<'a> System<'a> for NormalOrthoCameraSystem{
                 camera.proj = Ortho{left: -x_offset,right: 1.0 + x_offset,bottom: 0.0,top: 1.0,near: 0.1,far: 2000.0}.into();
             }
         }
-
+        
+        /* //random test
         for mut camera in (&mut cameras).join(){
             camera.proj = Ortho{left: 0.0,right: 1.0,bottom: -80.0,top: 1.0,near: 0.1,far: 2000.0}.into();
+        }*/
+    }
+}
+
+
+pub struct UiTimer{
+    pub start: f64,
+}
+
+impl Component for UiTimer{
+    type Storage = VecStorage<Self>;
+}
+
+pub struct UiTimerSystem;
+
+impl<'a> System<'a> for UiTimerSystem{
+    type SystemData = (ReadStorage<'a,UiTimer>,WriteStorage<'a,UiText>,Read<'a,Time>);
+    fn run(&mut self, (timers,mut texts,time): Self::SystemData){
+        for (timer,mut text) in (&timers,&mut texts).join(){
+            let t = time.absolute_time_seconds() - timer.start;
+            text.text = t.to_string(); // Simply show seconds for now.
+        }
+    }
+}
+
+
+pub trait UiAutoText: Component{
+    fn get_text(&self) -> String;
+}
+
+pub struct UiAutoTextSystem<T>{
+    phantom: PhantomData<T>,
+}
+
+impl<'a,T> System<'a> for UiAutoTextSystem<T> where T: Component+UiAutoText{
+    type SystemData = (ReadStorage<'a,T>,WriteStorage<'a,UiText>);
+    fn run(&mut self, (autotexts,mut texts): Self::SystemData){
+        for (autotext,mut text) in (&autotexts,&mut texts).join(){
+            text.text = autotext.get_text();
         }
     }
 }
