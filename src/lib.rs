@@ -5,9 +5,10 @@ extern crate ron;
 #[macro_use]
 extern crate log;
 extern crate dirty;
+extern crate termion;
+extern crate fern;
 
 use amethyst::assets::{Loader,AssetStorage,Handle,Format,Asset,SimpleFormat};
-//use amethyst::renderer::{PosTex,VirtualKeyCode,Event,WindowEvent,KeyboardInput,Mesh,ObjFormat};
 use amethyst::animation::AnimationBundle;
 use amethyst::audio::{AudioBundle,SourceHandle};
 use amethyst::ui::{UiBundle,UiText};
@@ -26,17 +27,25 @@ use std::marker::PhantomData;
 use std::fs::File;
 use std::fs;
 use std::path::Path;
-use std::io::Read as _IORead;
-use std::io::Write as _IOWrite;
+use std::io::Read as IORead;
+use std::io::Write as IOWrite;
+use std::io;
 use dirty::Dirty;
 use std::iter::Cycle;
 use std::vec::IntoIter;
 use std::collections::HashMap;
+use std::time::Duration;
+use std::thread::sleep;
 
+
+use termion::event::Key;
+use termion::input::TermRead;
+use termion::raw::IntoRawMode;
+use termion::async_stdin;
+use std::io::{stdin, stdout};
 
 /// Loads asset from the so-called asset packs
-/// It caches assets which you can manually load or unload on demand, or load automatically.
-/// It also tries to infer the type to load from the file extension.
+/// It caches assets which you can manually load or unload on demand.
 ///
 /// Example:
 /// If the folder structure looks like this
@@ -47,14 +56,10 @@ use std::collections::HashMap;
 /// /assets/mod1/sounds/click.ogg
 /// /assets/mod2/sounds/click.ogg
 ///
-/// get::<Texture>("sprites/player.png") -> /assets/mod1/sprites/player.png
-/// get::<Mesh>("models/cube.obj") -> /assets/base/models/cube.obj
-/// get::<Audio>("sounds/click.ogg") -> Unknown.
-///
-///
-/// yet to resolve: asset pack ordering & deps
+/// resolve_path("sprites/player.png") -> /assets/mod1/sprites/player.png
+/// resolve_path("models/cube.obj") -> /assets/base/models/cube.obj
+/// resolve_path("sounds/click.ogg") -> Unknown.
 pub struct AssetLoader{
-    /// Should end with a /
     base_path: String,
     default_pack: String,
     asset_packs: Vec<String>,
@@ -115,6 +120,7 @@ impl AssetLoader{
 
         res
     }
+    
     fn resolve_path_for_pack(&self, path: &str, pack: &str) -> Option<String> {
         let abs = self.base_path.to_owned()+ "/" + pack + "/" + &path.to_owned();
         let path = Path::new(&abs);
@@ -124,6 +130,7 @@ impl AssetLoader{
             None
         }
     }
+    
     pub fn get_asset_packs(&mut self) -> &Vec<String>{
         let mut buf: Option<Vec<String>> = None;
         if self.asset_packs.len() == 0{
@@ -144,9 +151,11 @@ impl AssetLoader{
 
         &self.asset_packs
     }
+    
     pub fn get_asset_handle<T>(path: &str, ali: &AssetLoaderInternal<T>) -> Option<Handle<T>>{
         ali.assets.get(path).cloned()
     }
+    
     pub fn get_asset<'a,T>(path: &str, ali: &AssetLoaderInternal<T>, storage: &'a AssetStorage<T>) -> Option<&'a T> where T: Asset{
         if let Some(h) = AssetLoader::get_asset_handle::<T>(path,ali){
             storage.get(&h)
@@ -154,7 +163,7 @@ impl AssetLoader{
             None
         }
     }
-
+    
     pub fn get_asset_or_load<'a,T,F>(&mut self, path: &str,format: F, options: F::Options, ali: &mut AssetLoaderInternal<T>, storage: &'a mut AssetStorage<T>,loader: Loader) -> Option<&'a T>
         where T: Asset, F: Format<T>+'static{
         if let Some(h) = AssetLoader::get_asset_handle::<T>(path,ali){
@@ -166,7 +175,7 @@ impl AssetLoader{
         }
         None
     }
-
+    
     pub fn load<T,F>(&self, path: &str, format: F, options: F::Options, ali: &mut AssetLoaderInternal<T>, storage: &mut AssetStorage<T>, loader: Loader) -> Option<Handle<T>>
         where T: Asset, F: Format<T>+'static{
         if let Some(p) = self.resolve_path(path){
@@ -254,6 +263,88 @@ mod test{
         let mut asset_loader = load_asset_loader();
         assert_eq!(asset_loader.resolve_path("config/ovall"),Some(format!("{}/test/assets/mod2/config/ovall",env!("CARGO_MANIFEST_DIR")).to_string()))
     }
+    
+    #[test]
+    fn termion_test() {
+        start_logger();
+        let mut stdin = async_stdin().bytes();
+        let mut stdout = stdout().into_raw_mode().unwrap();
+        let mut buf = Vec::<u8>::new();
+        print!("{}",termion::cursor::Hide);
+        loop {
+            //print!("random_garbage_");
+            let (term_width,term_height) = termion::terminal_size().ok().expect("Failed to get terminal size.");
+            //println!("random stuff \r");
+            warn!("random stuff");
+            while let Some(b) = stdin.next(){
+                info!("\r{:?} <- Char entered \r", b);
+                //println!("this should hopefully switch ({:?}) \r",b);
+                if let Ok(b) = b {
+                    if b == 3{
+                        print!("{}{}",termion::cursor::Show,termion::clear::CurrentLine);
+                        //print!("\r\nreset\r\n");
+                        stdout.flush().unwrap();
+                        drop(stdout);
+                        std::process::exit(0); // Ctrl+C = exit immediate
+                    }else if b == 13 {
+                        println!("BUFFER: {:?}",buf);
+                        buf.clear();
+                    }else{
+                        buf.push(b);
+                    }
+                }
+            }
+            
+            // Print entry line at the bottom
+            print_first_line(&buf);
+            clear_second_line();
+            stdout.flush().unwrap();
+            
+            sleep(Duration::from_millis(100));
+        }
+    }
+    fn reset_input_line(){
+        
+    }
+    fn clear_second_line_str()->String{
+        let (_,term_height) = termion::terminal_size().ok().expect("Failed to get terminal size.");
+        format!("{}{}",termion::cursor::Goto(1,term_height-1),termion::clear::CurrentLine)
+    }
+    fn clear_second_line(){
+        print!("{}",clear_second_line_str());
+    }
+    fn print_first_line(buf: &Vec<u8>){
+        let (_,term_height) = termion::terminal_size().ok().expect("Failed to get terminal size.");
+        print!("{}{}>{}",termion::cursor::Goto(1,term_height),termion::clear::CurrentLine,String::from_utf8_lossy(&buf));
+    }
+    
+    // On print: goto line 1, clear, write, \r\n, clear write line 1
+    
+    pub fn start_logger() {
+        let color_config = fern::colors::ColoredLevelConfig::new();
+
+        fern::Dispatch::new()
+        .format(move |out, message, record| {
+            out.finish(format_args!(
+                "{color}[{level}][{target}] {message}{color_reset}\r\n{clear}",
+                color = format!(
+                        "\x1B[{}m",
+                        color_config.get_color(&record.level()).to_fg_str()
+                    ),
+                level = record.level(),
+                target = record.target(),
+                message = message,
+                color_reset = "\x1B[0m",
+                clear = clear_second_line_str(),
+            ))
+        })
+        .level(log::LevelFilter::Debug)
+        .chain(io::stdout())
+        .apply()
+        .unwrap_or_else(|_| {
+            error!("Global logger already set, amethyst-extra logger not used!")
+        });
+    }
 }
 
 /*pub trait AssetToFormat<T> where T: Sized{
@@ -268,7 +359,7 @@ impl AssetToFormat<Mesh> for Mesh{
 
 
 
-
+/// Generates a rectangle 2d mesh.
 pub fn gen_rectangle_mesh(
     w: f32,
     h: f32,
@@ -278,6 +369,8 @@ pub fn gen_rectangle_mesh(
     let verts = gen_rectangle_vertices(w, h);
     loader.load_from_data(verts.into(), (), &storage)
 }
+
+/// Generate the vertices of a rectangle.
 pub fn gen_rectangle_vertices(w: f32, h: f32) -> Vec<PosTex> {
     let data: Vec<PosTex> = vec![
         PosTex {
