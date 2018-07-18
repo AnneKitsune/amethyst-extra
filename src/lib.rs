@@ -12,8 +12,8 @@ use amethyst::assets::{Loader,AssetStorage,Handle,Format,Asset,SimpleFormat};
 use amethyst::animation::AnimationBundle;
 use amethyst::audio::{AudioBundle,SourceHandle};
 use amethyst::ui::{UiBundle,UiText};
-use amethyst::input::InputBundle;
-use amethyst::core::TransformBundle;
+use amethyst::input::*;
+use amethyst::core::*;
 use amethyst::renderer::*;
 use amethyst::ecs::*;
 use amethyst::ecs::storage::NullStorage;
@@ -36,6 +36,8 @@ use std::vec::IntoIter;
 use std::collections::HashMap;
 use std::time::Duration;
 use std::thread::sleep;
+use std::hash::Hash;
+use amethyst::core::cgmath::{Vector4,SquareMatrix};
 
 
 use termion::event::Key;
@@ -164,7 +166,7 @@ impl AssetLoader{
         }
     }
     
-    pub fn get_asset_or_load<'a,T,F>(&mut self, path: &str,format: F, options: F::Options, ali: &mut AssetLoaderInternal<T>, storage: &'a mut AssetStorage<T>,loader: Loader) -> Option<&'a T>
+    pub fn get_asset_or_load<'a,T,F>(&mut self, path: &str,format: F, options: F::Options, ali: &mut AssetLoaderInternal<T>, storage: &'a mut AssetStorage<T>,loader: &Loader) -> Option<&'a T>
         where T: Asset, F: Format<T>+'static{
         if let Some(h) = AssetLoader::get_asset_handle::<T>(path,ali){
             return storage.get(&h);
@@ -176,8 +178,11 @@ impl AssetLoader{
         None
     }
     
-    pub fn load<T,F>(&self, path: &str, format: F, options: F::Options, ali: &mut AssetLoaderInternal<T>, storage: &mut AssetStorage<T>, loader: Loader) -> Option<Handle<T>>
+    pub fn load<T,F>(&self, path: &str, format: F, options: F::Options, ali: &mut AssetLoaderInternal<T>, storage: &mut AssetStorage<T>, loader: &Loader) -> Option<Handle<T>>
         where T: Asset, F: Format<T>+'static{
+        if let Some(handle) = AssetLoader::get_asset_handle(path,ali){
+            return Some(handle);
+        }
         if let Some(p) = self.resolve_path(path){
             let handle: Handle<T> = loader.load(p,format,options,(),storage);
             ali.assets.insert(String::from(path),handle.clone());
@@ -618,12 +623,13 @@ impl<'a> System<'a> for NormalOrthoCameraSystem{
             let x_offset = (aspect - 1.0) / 2.0;
 
             for mut camera in (&mut cameras).join(){
+                println!("CHANGING CAM RATIO! {:?}",Ortho{left: -x_offset,right: 1.0 + x_offset,bottom: 0.0,top: 1.0,near: 0.1,far: 2000.0});
                 camera.proj = Ortho{left: -x_offset,right: 1.0 + x_offset,bottom: 0.0,top: 1.0,near: 0.1,far: 2000.0}.into();
             }
         }
         
-        /* //random test
-        for mut camera in (&mut cameras).join(){
+        //random test
+        /*for mut camera in (&mut cameras).join(){
             camera.proj = Ortho{left: 0.0,right: 1.0,bottom: -80.0,top: 1.0,near: 0.1,far: 2000.0}.into();
         }*/
     }
@@ -667,6 +673,54 @@ impl<'a,T> System<'a> for UiAutoTextSystem<T> where T: Component+UiAutoText{
         }
     }
 }
+
+pub struct FollowMouse;
+impl Component for FollowMouse{
+    type Storage = VecStorage<Self>;
+}
+
+#[derive(Default)]
+pub struct FollowMouseSystem<A,B>{
+    phantom: PhantomData<(A,B)>,
+}
+
+impl<'a,A,B> System<'a> for FollowMouseSystem<A,B> where A: Send+Sync+Hash+Eq+'static+Clone, B: Send+Sync+Hash+Eq+'static+Clone{
+    type SystemData = (ReadStorage<'a,FollowMouse>,WriteStorage<'a,Transform>,ReadStorage<'a,GlobalTransform>,ReadExpect<'a,ScreenDimensions>,ReadExpect<'a,InputHandler<A,B>>,ReadStorage<'a,Camera>);
+    fn run(&mut self, (follow_mouses,mut transforms, global_transforms, dimension,input,cameras): Self::SystemData){
+
+        fn fancy_normalize(v: f32, a: f32) -> f32 {
+            // [0, a]
+            // [-1,1]
+
+            v / (0.5 * a) - 1.0
+        }
+
+        let width = dimension.width();
+        let height = dimension.height();
+
+        if let Some((x,y)) = input.mouse_position() {
+            for (gt, cam) in (&global_transforms, &cameras).join() {
+
+                // TODO: Breaks with multiple cameras :ok_hand:
+                let proj = cam.proj;
+                let view = gt.0;
+                let pv = proj * view;
+                let inv = pv.invert().expect("Failed to inverse matrix");
+                let tmp: Vector4<f32> = [fancy_normalize(x as f32,width),fancy_normalize(y as f32,height),0.0,1.0].into();
+                let res = inv * tmp;
+
+                println!("Hopefully mouse pos in world: {:?}",res);
+
+
+                for (mut transform, _) in (&mut transforms, &follow_mouses).join() {
+                    transform.translation = [res.x, res.y, transform.translation.z].into();
+                    println!("set pos to {:?}",transform.translation);
+                }
+            }
+        }
+    }
+}
+
 
 /*pub struct EmptyState;
 impl<'a,'b> State<GameData<'a,'b>> for EmptyState{

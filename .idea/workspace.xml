@@ -17,8 +17,14 @@
       <file leaf-file-name="lib.rs" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/lib.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="5999">
-              <caret line="467" column="41" selection-start-line="467" selection-start-column="41" selection-end-line="467" selection-end-column="41" />
+            <state relative-caret-position="15358">
+              <caret line="716" column="70" selection-start-line="716" selection-start-column="70" selection-end-line="716" selection-end-column="70" />
+              <folding>
+                <element signature="e#6260#6261#0" expanded="true" />
+                <element signature="e#6299#6300#0" expanded="true" />
+                <element signature="e#10715#10716#0" expanded="true" />
+                <element signature="e#10767#10768#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -64,6 +70,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -75,9 +82,8 @@
           <select />
         </subPane>
       </pane>
-      <pane id="PackagesPane" />
       <pane id="AndroidView" />
-      <pane id="Scope" />
+      <pane id="PackagesPane" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -172,7 +178,7 @@
       <window_info anchor="bottom" id="Terminal" order="7" />
       <window_info id="Capture Tool" order="2" />
       <window_info id="Designer" order="2" />
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.07081081" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.07135135" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info id="UI Designer" order="2" />
@@ -191,6 +197,26 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/src/lib.rs">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="7472">
+          <caret line="467" column="41" selection-start-line="467" selection-start-column="41" selection-end-line="467" selection-end-column="41" />
+          <folding>
+            <element signature="e#6260#6261#0" expanded="true" />
+            <element signature="e#6299#6300#0" expanded="true" />
+            <element signature="e#10715#10716#0" expanded="true" />
+            <element signature="e#10767#10768#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Cargo.toml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="96">
+          <caret line="6" column="73" selection-start-line="6" selection-start-column="73" selection-end-line="6" selection-end-column="73" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/lib.rs">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2320">
@@ -402,8 +428,14 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/lib.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="5999">
-          <caret line="467" column="41" selection-start-line="467" selection-start-column="41" selection-end-line="467" selection-end-column="41" />
+        <state relative-caret-position="15358">
+          <caret line="716" column="70" selection-start-line="716" selection-start-column="70" selection-end-line="716" selection-end-column="70" />
+          <folding>
+            <element signature="e#6260#6261#0" expanded="true" />
+            <element signature="e#6299#6300#0" expanded="true" />
+            <element signature="e#10715#10716#0" expanded="true" />
+            <element signature="e#10767#10768#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
