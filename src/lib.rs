@@ -7,6 +7,7 @@ extern crate log;
 extern crate dirty;
 extern crate termion;
 extern crate fern;
+extern crate crossterm;
 
 use amethyst::assets::{Loader,AssetStorage,Handle,Format,Asset,SimpleFormat};
 use amethyst::animation::AnimationBundle;
@@ -42,9 +43,21 @@ use amethyst::core::cgmath::{Vector4,SquareMatrix};
 
 use termion::event::Key;
 use termion::input::TermRead;
-use termion::raw::IntoRawMode;
+//use termion::raw::IntoRawMode;
 use termion::async_stdin;
 use std::io::{stdin, stdout};
+
+use crossterm::terminal::*;
+use crossterm::*;
+use crossterm::cursor::*;
+use crossterm::raw::*;
+// 
+use crossterm::terminal::terminal::Terminal;
+// crossterm fixing
+// use crossterm::terminal::terminal::Terminal; import not reexported at crossterm::terminal::*
+// context should be owned by default, not Rc
+// IntoRaw inconsistent: uses direct Rc instead of ref
+
 
 /// Loads asset from the so-called asset packs
 /// It caches assets which you can manually load or unload on demand.
@@ -269,7 +282,7 @@ mod test{
         assert_eq!(asset_loader.resolve_path("config/ovall"),Some(format!("{}/test/assets/mod2/config/ovall",env!("CARGO_MANIFEST_DIR")).to_string()))
     }
     
-    #[test]
+    /*#[test]
     fn termion_test() {
         start_logger();
         let mut stdin = async_stdin().bytes();
@@ -321,9 +334,60 @@ mod test{
     fn print_first_line(buf: &Vec<u8>){
         let (_,term_height) = termion::terminal_size().ok().expect("Failed to get terminal size.");
         print!("{}{}>{}",termion::cursor::Goto(1,term_height),termion::clear::CurrentLine,String::from_utf8_lossy(&buf));
-    }
+    }*/
     
     // On print: goto line 1, clear, write, \r\n, clear write line 1
+    
+    // https://gist.github.com/stenverbois/cb9452003c72539fee884515990450f4
+    
+    #[test]
+    pub fn crossterm(){
+        //start_logger();
+        let context = Context::new();
+        let mut terminal = terminal(&context);
+        let mut out = stdout().into_raw_mode(context.clone()).unwrap();
+        
+        let mut stdin = async_stdin().bytes();
+        let mut cursor = cursor(&context);
+        //let mut buf = Vec::<u8>::new();
+        let mut buf = String::new();
+        //print!("{}",termion::cursor::Hide);
+        loop {
+            //print!("random_garbage_");
+            let (term_width,term_height) = terminal.terminal_size();
+            swap_write(&mut terminal,&mut out,&mut cursor,"random stuff",&buf);
+            while let Some(b) = stdin.next(){
+                println!("\r{:?} <- Char entered \r", b);
+                if let Ok(b) = b {
+                    if b == 3{
+                        //print!("{}{}",termion::cursor::Show,termion::clear::CurrentLine);
+                        //print!("\r\nreset\r\n");
+                        terminal.exit();
+                        drop(out);
+                        std::process::exit(0); // Ctrl+C = exit immediate
+                    }else if b == 13 {
+                        println!("BUFFER: {:?}",buf);
+                        buf.clear();
+                    }else{
+                        buf.push(b as char);
+                    }
+                }
+            }
+            sleep(Duration::from_millis(100));
+        }
+    }
+    pub fn swap_write(terminal: &mut Terminal, out: &mut RawTerminal, cursor: &mut TerminalCursor, msg: &str, input_buf: &String) {
+        let (term_width,term_height) = terminal.terminal_size();
+        cursor.goto(0,term_height);
+        let first_line_content = ">allo les amis!";
+        terminal.clear(ClearType::CurrentLine);
+        terminal.write(msg);
+        terminal.write("\n\r");
+        terminal.write(format!(">{}",input_buf));
+        /*out.write(msg.as_bytes());
+        out.write("\n".as_bytes());
+        terminal.write(first_line_content.as_bytes());*/
+    }
     
     pub fn start_logger() {
         let color_config = fern::colors::ColoredLevelConfig::new();
@@ -331,7 +395,7 @@ mod test{
         fern::Dispatch::new()
         .format(move |out, message, record| {
             out.finish(format_args!(
-                "{color}[{level}][{target}] {message}{color_reset}\r\n{clear}",
+                "{color}[{level}][{target}] {message}{color_reset}",
                 color = format!(
                         "\x1B[{}m",
                         color_config.get_color(&record.level()).to_fg_str()
@@ -340,7 +404,6 @@ mod test{
                 target = record.target(),
                 message = message,
                 color_reset = "\x1B[0m",
-                clear = clear_second_line_str(),
             ))
         })
         .level(log::LevelFilter::Debug)

@@ -12,3 +12,4 @@ log = "0.4"
 dirty = "0.2"
 termion = "1.5.1"
 fern = { version = "0.5", features = ["colored"] }
+crossterm = { git= "https://github.com/jojolepro/crossterm", branch = "input" }
