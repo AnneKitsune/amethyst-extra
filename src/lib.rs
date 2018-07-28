@@ -9,7 +9,7 @@ extern crate termion;
 extern crate fern;
 extern crate crossterm;
 
-use amethyst::assets::{Loader,AssetStorage,Handle,Format,Asset,SimpleFormat};
+use amethyst::assets::{Loader,AssetStorage,Handle,Format,Asset};
 use amethyst::animation::AnimationBundle;
 use amethyst::audio::{AudioBundle,SourceHandle};
 use amethyst::ui::{UiBundle,UiText};
@@ -41,8 +41,6 @@ use std::hash::Hash;
 use amethyst::core::cgmath::{Vector4,SquareMatrix};
 
 
-use termion::event::Key;
-use termion::input::TermRead;
 //use termion::raw::IntoRawMode;
 use termion::async_stdin;
 use std::io::{stdin, stdout};
@@ -94,7 +92,7 @@ impl AssetLoader{
 
     fn sanitize_path_trail_only(path: &str) -> String {
         let mut out = path.to_string();
-        let mut chars = path.chars();
+        let chars = path.chars();
         let last = chars.last().unwrap();
         if last == '/' {
           let idx = out.len() - 1;
@@ -119,10 +117,8 @@ impl AssetLoader{
     }
 
     pub fn resolve_path(&self, path: &str) -> Option<String> {
-        let mut res: Option<String> = None;
-
         // Try to get from default path
-        res = self.resolve_path_for_pack(path,&self.default_pack);
+        let mut res = self.resolve_path_for_pack(path,&self.default_pack);
 
         // Try to find overrides
         for p in &self.asset_packs{
@@ -260,25 +256,25 @@ mod test{
   
     #[test]
     fn asset_loader_resolve_unique_main() {
-        let mut asset_loader = load_asset_loader();
+        let asset_loader = load_asset_loader();
         assert_eq!(asset_loader.resolve_path("config/unique"),Some(format!("{}/test/assets/main/config/unique",env!("CARGO_MANIFEST_DIR")).to_string()))
     }
     
     #[test]
     fn asset_loader_resolve_unique_other() {
-        let mut asset_loader = load_asset_loader();
+        let asset_loader = load_asset_loader();
         assert_eq!(asset_loader.resolve_path("config/uniqueother"),Some(format!("{}/test/assets/mod1/config/uniqueother",env!("CARGO_MANIFEST_DIR")).to_string()))
     }
     
     #[test]
     fn asset_loader_resolve_path_override_single() {
-        let mut asset_loader = load_asset_loader();
+        let asset_loader = load_asset_loader();
         assert_eq!(asset_loader.resolve_path("config/ov1"),Some(format!("{}/test/assets/mod1/config/ov1",env!("CARGO_MANIFEST_DIR")).to_string()))
     }
     
     #[test]
     fn asset_loader_resolve_path_override_all() {
-        let mut asset_loader = load_asset_loader();
+        let asset_loader = load_asset_loader();
         assert_eq!(asset_loader.resolve_path("config/ovall"),Some(format!("{}/test/assets/mod2/config/ovall",env!("CARGO_MANIFEST_DIR")).to_string()))
     }
     
@@ -379,7 +375,6 @@ mod test{
     pub fn swap_write(terminal: &mut Terminal, out: &mut RawTerminal, cursor: &mut TerminalCursor, msg: &str, input_buf: &String) {
         let (term_width,term_height) = terminal.terminal_size();
         cursor.goto(0,term_height);
-        let first_line_content = ">allo les amis!";
         terminal.clear(ClearType::CurrentLine);
         terminal.write(msg);
         terminal.write("\n\r");
@@ -614,11 +609,13 @@ impl<'a,T> System<'a> for AutoSaveSystem<T> where T: Serialize+DeserializeOwned+
         Self::SystemData::setup(res);
     }
     fn run(&mut self, (mut d,): Self::SystemData){
-        if let Some(v) = d.read_dirty(){
+    	if d.dirty(){
+    		d.clear();
+        	let v = d.read();
             let s = ron::ser::to_string(&v).expect(&format!("Unable to serialize the save struct for: {}",self.save_path));
             let mut f = File::create(&self.save_path);
             if f.is_ok(){
-                let mut file = f.as_mut().ok().unwrap();
+                let file = f.as_mut().ok().unwrap();
                 let res = file.write_all(s.as_bytes());
                 if res.is_err() {
                     error!("Failed to write serialized save data to the file. Error: {:?}",res.err().unwrap());
@@ -655,13 +652,13 @@ impl<'a> System<'a> for TimedDestroySystem{
 
         for (e,d) in (&*entities,&dat).join(){
             if time.absolute_time_seconds() > d.time {
-                entities.delete(e);
+                entities.delete(e).expect("Failed to delete entity!");
             }
         }
 
         for (e,mut d) in (&*entities,&mut dit).join(){
             if d.timer <= 0.0 {
-                entities.delete(e);
+                entities.delete(e).expect("Failed to delete entity!");
             }
             d.timer -= time.delta_seconds() as f64;
         }
@@ -748,7 +745,8 @@ pub struct FollowMouseSystem<A,B>{
 }
 
 impl<'a,A,B> System<'a> for FollowMouseSystem<A,B> where A: Send+Sync+Hash+Eq+'static+Clone, B: Send+Sync+Hash+Eq+'static+Clone{
-    type SystemData = (ReadStorage<'a,FollowMouse>,WriteStorage<'a,Transform>,ReadStorage<'a,GlobalTransform>,ReadExpect<'a,ScreenDimensions>,ReadExpect<'a,InputHandler<A,B>>,ReadStorage<'a,Camera>);
+    type SystemData = (ReadStorage<'a,FollowMouse>,WriteStorage<'a,Transform>,ReadStorage<'a,GlobalTransform>,ReadExpect<'a,ScreenDimensions>,
+    	ReadExpect<'a,InputHandler<A,B>>,ReadStorage<'a,Camera>);
     fn run(&mut self, (follow_mouses,mut transforms, global_transforms, dimension,input,cameras): Self::SystemData){
 
         fn fancy_normalize(v: f32, a: f32) -> f32 {
