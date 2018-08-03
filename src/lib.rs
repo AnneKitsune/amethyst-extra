@@ -526,33 +526,16 @@ pub fn generate_circle_vertices(radius: f32, resolution: usize) -> Vec<PosTex> {
     vertices
 }
 
-// check for removal
-pub fn key_pressed_from_event(key: VirtualKeyCode, event: &Event) -> bool {
-    match event {
-        &Event::WindowEvent { ref event, .. } => match event {
-            &WindowEvent::KeyboardInput {
-                input:
-                    KeyboardInput {
-                        virtual_keycode: Some(k),
-                        ..
-                    },
-                ..
-            } => k == key,
-            _ => false,
-        },
-        _ => false,
+/// Doesn't work if you run `cargo run` while you are not in the root directory
+pub fn get_working_dir() -> String {
+    let mut base_path = String::from(std::env::current_exe().expect("Failed to find executable path.").parent().expect("Failed to get parent directory of the executable.").to_str().unwrap());
+    if base_path.contains("target/"){
+        base_path = String::from(".");
     }
+    base_path
 }
-// check for removal
-pub fn window_closed(event: &Event) -> bool {
-    match event {
-        &Event::WindowEvent { ref event, .. } => match event {
-            &WindowEvent::CloseRequested => true,
-            _ => false,
-        },
-        _ => false,
-    }
-}
+
+
 
 pub struct Music {
     pub music: Cycle<IntoIter<SourceHandle>>,
