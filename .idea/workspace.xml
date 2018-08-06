@@ -3,6 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="6c6dd47f-6174-4fba-a383-72d9005ae30a" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -16,8 +18,8 @@
       <file leaf-file-name="lib.rs" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/lib.rs">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="636">
-              <caret line="825" column="24" lean-forward="true" selection-start-line="825" selection-start-column="24" selection-end-line="825" selection-end-column="24" />
+            <state relative-caret-position="336">
+              <caret line="353" column="55" lean-forward="true" selection-start-line="353" selection-start-column="55" selection-end-line="353" selection-end-column="55" />
             </state>
           </provider>
         </entry>
@@ -25,8 +27,8 @@
       <file leaf-file-name="Cargo.toml" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/Cargo.toml">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="192">
-              <caret line="12" column="17" selection-start-line="12" selection-start-column="17" selection-end-line="12" selection-end-column="17" />
+            <state relative-caret-position="96">
+              <caret line="6" column="102" selection-start-line="6" selection-start-column="102" selection-end-line="6" selection-end-column="102" />
             </state>
           </provider>
         </entry>
@@ -53,9 +55,9 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="965" />
+    <option name="x" value="12" />
     <option name="y" value="15" />
-    <option name="width" value="943" />
+    <option name="width" value="1896" />
     <option name="height" value="1053" />
   </component>
   <component name="ProjectView">
@@ -63,6 +65,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -70,11 +73,15 @@
               <item name="amethyst-extra" type="b2602c69:ProjectViewProjectNode" />
               <item name="amethyst-extra" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="amethyst-extra" type="b2602c69:ProjectViewProjectNode" />
+              <item name="amethyst-extra" type="462c0819:PsiDirectoryNode" />
+              <item name="src" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
       <pane id="AndroidView" />
       <pane id="PackagesPane" />
     </panes>
@@ -156,7 +163,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="965" y="15" width="943" height="1053" extended-state="0" />
+    <frame x="12" y="15" width="1896" height="1053" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info anchor="right" id="Palette" order="3" />
@@ -172,7 +179,7 @@
       <window_info anchor="bottom" id="Terminal" order="7" />
       <window_info id="Capture Tool" order="2" />
       <window_info id="Designer" order="2" />
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.073578596" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.17243244" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info id="UI Designer" order="2" />
@@ -458,15 +465,15 @@
     <entry file="file://$USER_HOME$/.cargo/git/checkouts/amethyst-fedb0a1032a075ce/04ccfd8/amethyst_assets/src/storage.rs" />
     <entry file="file://$PROJECT_DIR$/Cargo.toml">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="192">
-          <caret line="12" column="17" selection-start-line="12" selection-start-column="17" selection-end-line="12" selection-end-column="17" />
+        <state relative-caret-position="96">
+          <caret line="6" column="102" selection-start-line="6" selection-start-column="102" selection-end-line="6" selection-end-column="102" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/lib.rs">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="636">
-          <caret line="825" column="24" lean-forward="true" selection-start-line="825" selection-start-column="24" selection-end-line="825" selection-end-column="24" />
+        <state relative-caret-position="336">
+          <caret line="353" column="55" lean-forward="true" selection-start-line="353" selection-start-column="55" selection-end-line="353" selection-end-column="55" />
         </state>
       </provider>
     </entry>

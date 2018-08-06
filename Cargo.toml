@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["jojo <jojolepromain@gmail.com>"]
 
 [dependencies]
-amethyst = { git = "https://github.com/amethyst/amethyst", branch = "develop" }
+amethyst = { git = "https://github.com/amethyst/amethyst", branch = "develop", features = ["nightly"] }
 serde = { version = "1.0", features = ["serde_derive"] }
 serde_derive = "1.0"
 ron = "0.2"

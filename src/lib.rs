@@ -136,6 +136,7 @@ impl AssetLoader {
         if path.exists() {
             Some(abs.clone())
         } else {
+            warn!("Failed to find file at path: {}",abs);
             None
         }
     }
@@ -534,7 +535,6 @@ pub fn get_working_dir() -> String {
     }
     base_path
 }
-
 
 
 pub struct Music {
