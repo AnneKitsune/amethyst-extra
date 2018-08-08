@@ -1,15 +1,14 @@
 [package]
 name = "amethyst-extra"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["jojo <jojolepromain@gmail.com>"]
 
 [dependencies]
-amethyst = { git = "https://github.com/amethyst/amethyst", branch = "develop", features = ["nightly"] }
+amethyst = { version = "0.8", features = ["nightly"] }
 serde = { version = "1.0", features = ["serde_derive"] }
 serde_derive = "1.0"
 ron = "0.2"
 log = "0.4"
 dirty = "0.2"
-termion = "1.5.1"
 fern = { version = "0.5", features = ["colored"] }
 crossterm = { git= "https://github.com/TimonPost/crossterm", branch = "input" }

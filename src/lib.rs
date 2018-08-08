@@ -7,7 +7,6 @@ extern crate log;
 extern crate crossterm;
 extern crate dirty;
 extern crate fern;
-extern crate termion;
 
 use amethyst::animation::AnimationBundle;
 use amethyst::assets::{Asset, AssetStorage, Format, Handle, Loader, SimpleFormat};
@@ -49,12 +48,7 @@ use crossterm::input::*;
 use crossterm::raw::*;
 use crossterm::terminal::*;
 use crossterm::*;
-//
 use crossterm::terminal::terminal::Terminal;
-// crossterm fixing
-// use crossterm::terminal::terminal::Terminal; import not reexported at crossterm::terminal::*
-// context should be owned by default, not Rc
-// IntoRaw inconsistent: uses direct Rc instead of ref
 
 /// Loads asset from the so-called asset packs
 /// It caches assets which you can manually load or unload on demand.
