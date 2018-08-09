@@ -7,6 +7,7 @@ extern crate log;
 extern crate crossterm;
 extern crate dirty;
 extern crate fern;
+extern crate partial_function;
 
 use amethyst::animation::AnimationBundle;
 use amethyst::assets::{Asset, AssetStorage, Format, Handle, Loader, SimpleFormat};
@@ -39,6 +40,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use std::vec::IntoIter;
 use std::sync::{Arc,Mutex};
+use partial_function::*;
 
 
 use std::io::{stdin, stdout};
@@ -821,6 +823,45 @@ impl<'a,A,B> System<'a> for FollowMouseSystem<A,B> where A: Send+Sync+Hash+Eq+'s
             }
         }
     }
+}
+
+#[derive(Deserialize)]
+pub struct LootTreeNode<R> {
+    pub chances: i32,
+    pub result: R,
+}
+
+#[derive(Deserialize)]
+pub struct LootTreeBuilder<R> {
+    pub nodes: Vec<LootTreeNode<R>>,
+}
+
+impl<R: 'static> LootTreeBuilder<R> {
+
+    pub fn new() -> Self {
+        LootTreeBuilder {
+            nodes: vec![],
+        }
+    }
+
+    pub fn build(self) -> LootTree<R> {
+        let mut f = LowerPartialFunction::new();
+        let mut accum = 0;
+        for n in self.nodes.into_iter() {
+            let tmp = n.chances;
+            f = f.with(accum, move |x| n.result);
+            accum = accum + tmp;
+        }
+        LootTree {
+            partial_func: f.build(),
+            max: accum,
+        }
+    }
+}
+
+pub struct LootTree<R>{
+    partial_func: LowerPartialFunction<i32,R>,
+    max: i32,
 }
 
 /*pub struct EmptyState;

@@ -12,3 +12,4 @@ log = "0.4"
 dirty = "0.2"
 fern = { version = "0.5", features = ["colored"] }
 crossterm = { git= "https://github.com/TimonPost/crossterm", branch = "input" }
+partial_function = { git = "https://github.com/jojolepro/partialfunction" }
