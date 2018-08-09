@@ -4,13 +4,17 @@ extern crate serde;
 extern crate ron;
 #[macro_use]
 extern crate log;
-extern crate crossterm;
+//extern crate crossterm;
 extern crate dirty;
 extern crate fern;
 extern crate partial_function;
+extern crate rand;
+
+
+use rand::{thread_rng,Rng};
 
 use amethyst::animation::AnimationBundle;
-use amethyst::assets::{Asset, AssetStorage, Format, Handle, Loader, SimpleFormat};
+use amethyst::assets::{Asset, AssetStorage, Format, Handle, Loader};
 use amethyst::audio::{AudioBundle, SourceHandle};
 use amethyst::core::cgmath::Ortho;
 use amethyst::core::cgmath::{SquareMatrix, Vector4};
@@ -30,27 +34,21 @@ use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
 use std::hash::Hash;
-use std::io;
 use std::io::Read as IORead;
 use std::io::Write as IOWrite;
 use std::iter::Cycle;
 use std::marker::PhantomData;
 use std::path::Path;
-use std::thread::sleep;
-use std::time::Duration;
 use std::vec::IntoIter;
-use std::sync::{Arc,Mutex};
 use partial_function::*;
 
 
-use std::io::{stdin, stdout};
-
-use crossterm::cursor::*;
+/*use crossterm::cursor::*;
 use crossterm::input::*;
 use crossterm::raw::*;
 use crossterm::terminal::*;
 use crossterm::*;
-use crossterm::terminal::terminal::Terminal;
+use crossterm::terminal::terminal::Terminal;*/
 
 /// Loads asset from the so-called asset packs
 /// It caches assets which you can manually load or unload on demand.
@@ -291,7 +289,7 @@ where
     type Storage = VecStorage<Self>;
 }
 
-pub struct CustomTerminal{
+/*pub struct CustomTerminal{
     pub terminal: Box<Terminal>,
     pub raw_terminal: RawTerminal,
     pub cursor: Box<TerminalCursor>,
@@ -315,13 +313,7 @@ impl CustomTerminal{
 }
 
 // Safe because context is never leaked out
-unsafe impl Send for CustomTerminal{}
-
-/*impl Drop for CustomTerminal{
-    fn drop(&mut self) {
-        drop(*self.raw_terminal);
-    }
-}*/
+unsafe impl Send for CustomTerminal{}*/
 
 #[cfg(test)]
 mod test {
@@ -370,7 +362,7 @@ mod test {
     }*/
 
 
-    #[test]
+    /*#[test]
     pub fn crossterm() {
         let terminal = Arc::new(Mutex::new(CustomTerminal::new()));
 
@@ -445,7 +437,7 @@ mod test {
             .unwrap_or_else(|_| {
                 error!("Global logger already set, amethyst-extra logger not used!")
             });
-    }
+    }*/
 }
 
 /*pub trait AssetToFormat<T> where T: Sized{
@@ -836,7 +828,7 @@ pub struct LootTreeBuilder<R> {
     pub nodes: Vec<LootTreeNode<R>>,
 }
 
-impl<R: 'static> LootTreeBuilder<R> {
+impl<R: Clone + 'static> LootTreeBuilder<R> {
 
     pub fn new() -> Self {
         LootTreeBuilder {
@@ -849,7 +841,7 @@ impl<R: 'static> LootTreeBuilder<R> {
         let mut accum = 0;
         for n in self.nodes.into_iter() {
             let tmp = n.chances;
-            f = f.with(accum, move |x| n.result);
+            f = f.with(accum, move |_| {n.result.clone()});
             accum = accum + tmp;
         }
         LootTree {
@@ -859,9 +851,31 @@ impl<R: 'static> LootTreeBuilder<R> {
     }
 }
 
+/// A loot tree based on the lower partial function construct.
+/// Each loot tree node has a chance associated with it.
+///
+/// Example:
+/// { chance: 5, result: "item1" }
+/// { chance: 2, result: "item2" }
+///
+/// Internally this becomes
+/// [0,infinite[ -> item1
+/// [5,infinite[ -> item2
+/// maximum = 7 exclusive (that means 6)
+///
+/// Chances will effectively be:
+/// [0,4] (5) -> item1
+/// [5,6] (2) -> item2
 pub struct LootTree<R>{
     partial_func: LowerPartialFunction<i32,R>,
     max: i32,
+}
+
+impl<R> LootTree<R> {
+    pub fn roll(&self) -> Option<R> {
+        let rng = thread_rng().gen_range(0, self.max);
+        self.partial_func.eval(rng)
+    }
 }
 
 /*pub struct EmptyState;

@@ -1,7 +1,7 @@
 [package]
 name = "amethyst-extra"
-version = "0.2.0"
-authors = ["jojo <jojolepromain@gmail.com>"]
+version = "0.3.0"
+authors = ["jojolepro <jojolepromain@gmail.com>"]
 
 [dependencies]
 amethyst = { version = "0.8", features = ["nightly"] }
@@ -12,4 +12,5 @@ log = "0.4"
 dirty = "0.2"
 fern = { version = "0.5", features = ["colored"] }
 crossterm = { git= "https://github.com/TimonPost/crossterm", branch = "input" }
-partial_function = { git = "https://github.com/jojolepro/partialfunction" }
+partial_function = "0.4.0"
+rand = "0.5.5"
