@@ -34,6 +34,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
+use std::ops::{Add, Sub};
 use std::hash::Hash;
 use std::io::Read as IORead;
 use std::io::Write as IOWrite;
@@ -534,6 +535,44 @@ pub fn generate_circle_vertices(radius: f32, resolution: usize) -> Vec<PosTex> {
     }
 
     vertices
+}
+
+
+pub fn material_from_color(
+    color: [f32; 4],
+    loader: &Loader,
+    storage: &AssetStorage<Texture>,
+    material_defaults: &MaterialDefaults,
+) -> Material {
+    let albedo = loader.load_from_data(color.into(), (), &storage);
+    material_from_texture(albedo, material_defaults)
+}
+
+pub fn material_from_texture(texture: Handle<Texture>, defaults: &MaterialDefaults) -> Material {
+    Material {
+        albedo: texture,
+        ..defaults.0.clone()
+    }
+}
+
+pub fn value_near<B: Add<Output = B> + Sub<Output = B> + PartialOrd + Copy>(
+    number: B,
+    target: B,
+    margin: B,
+) -> bool {
+    number >= target - margin && number <= target + margin
+}
+
+pub fn material_from_png(
+    path: &str,
+    loader: &Loader,
+    storage: &AssetStorage<Texture>,
+    material_defaults: &MaterialDefaults,
+) -> Material {
+    material_from_texture(
+        loader.load(path, PngFormat, TextureMetadata::default(), (), &storage),
+        material_defaults,
+    )
 }
 
 /// Doesn't work if you run `cargo run` while you are not in the root directory
