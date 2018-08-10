@@ -21,6 +21,7 @@ use amethyst::core::timing::Time;
 use amethyst::core::*;
 use amethyst::ecs::storage::NullStorage;
 use amethyst::ecs::*;
+use amethyst::ecs::world::EntitiesRes;
 use amethyst::input::*;
 use amethyst::prelude::*;
 use amethyst::renderer::*;
@@ -922,11 +923,11 @@ impl<I: Send + Sync + 'static> Component for Removal<I> {
 }
 
 pub fn exec_removal<I: Send + Sync + PartialEq + 'static>(
-    entities: &Entities,
+    entities: &EntitiesRes,
     removal_storage: &ReadStorage<Removal<I>>,
     removal_id: I,
 ) {
-    for (e, r) in (&**entities, removal_storage).join() {
+    for (e, r) in (&*entities, removal_storage).join() {
         if r.id == removal_id {
             if let Err(err) = entities.delete(e) {
                 error!("Failed to delete entity during exec_removal: {:?}", err);
