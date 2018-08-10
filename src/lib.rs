@@ -20,8 +20,8 @@ use amethyst::core::cgmath::{SquareMatrix, Vector4};
 use amethyst::core::timing::Time;
 use amethyst::core::*;
 use amethyst::ecs::storage::NullStorage;
-use amethyst::ecs::*;
 use amethyst::ecs::world::EntitiesRes;
+use amethyst::ecs::*;
 use amethyst::input::*;
 use amethyst::prelude::*;
 use amethyst::renderer::*;
@@ -34,12 +34,12 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
-use std::ops::{Add, Sub};
 use std::hash::Hash;
 use std::io::Read as IORead;
 use std::io::Write as IOWrite;
 use std::iter::Cycle;
 use std::marker::PhantomData;
+use std::ops::{Add, Sub};
 use std::path::Path;
 use std::vec::IntoIter;
 
@@ -536,7 +536,6 @@ pub fn generate_circle_vertices(radius: f32, resolution: usize) -> Vec<PosTex> {
 
     vertices
 }
-
 
 pub fn material_from_color(
     color: [f32; 4],
