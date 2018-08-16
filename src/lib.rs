@@ -13,7 +13,7 @@ extern crate rand;
 use rand::{thread_rng, Rng};
 
 use amethyst::animation::AnimationBundle;
-use amethyst::assets::{Asset, AssetStorage, Format, Handle, Loader};
+use amethyst::assets::*;
 use amethyst::audio::{AudioBundle, SourceHandle};
 use amethyst::core::cgmath::Ortho;
 use amethyst::core::cgmath::{SquareMatrix, Vector4};
@@ -958,6 +958,29 @@ impl<I> Removal<I> {
 
 impl<I: Send + Sync + 'static> Component for Removal<I> {
     type Storage = DenseVecStorage<Self>;
+}
+
+
+#[derive(Default, Clone, Deserialize, Serialize)]
+pub struct RemovalPrefab<I> {
+    id: I,
+}
+
+impl<'a, I: PartialEq+Clone+Send+Sync+'static> PrefabData<'a> for RemovalPrefab<I> {
+    type SystemData = (
+        WriteStorage<'a, Removal<I>>,
+    );
+    type Result = ();
+
+    fn load_prefab(
+        &self,
+        entity: Entity,
+        system_data: &mut Self::SystemData,
+        _entities: &[Entity],
+    ) -> std::result::Result<(), PrefabError> {
+        system_data.0.insert(entity, Removal::new(self.id.clone()))?;
+        Ok(())
+    }
 }
 
 pub fn exec_removal<I: Send + Sync + PartialEq + 'static>(
