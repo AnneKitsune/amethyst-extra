@@ -45,24 +45,22 @@ use std::ops::{Add, Sub};
 use std::path::Path;
 use std::vec::IntoIter;
 
-use crossterm::{Crossterm, Screen};
-use crossterm::terminal::{terminal, ClearType, Terminal};
-use crossterm::cursor::{TerminalCursor};
-use crossterm::style::Color;
+use crossterm::cursor::TerminalCursor;
 use crossterm::screen::RawScreen;
+use crossterm::style::Color;
+use crossterm::terminal::{terminal, ClearType, Terminal};
+use crossterm::{Crossterm, Screen};
 
+use std::sync::{Arc, Mutex};
 use std::thread::sleep;
-use std::sync::{Arc,Mutex};
 use std::time::Duration;
 
-
 lazy_static! {
-    static ref CROSSTERM:Crossterm = {
-    	let screen = Screen::new(true);
-    	Crossterm::new(&screen)
+    static ref CROSSTERM: Crossterm = {
+        let screen = Screen::new(true);
+        Crossterm::new(&screen)
     };
 }
-
 
 /// Loads asset from the so-called asset packs
 /// It caches assets which you can manually load or unload on demand.
@@ -376,27 +374,26 @@ mod test {
 
         let mut input_buf = Arc::new(Mutex::new(String::new()));
         let mut key_buf = [0 as u8; 32];
-        
+
         start_logger(input_buf.clone());
-        
+
         loop {
             let (_, term_height) = terminal.terminal_size();
             //swap_write(&mut term, "random stuff", &input_buf.lock().unwrap());
+            //while let Some(Ok(b)) = input.next(){
             info!("random stuff");
-            {
-                if let Ok(count) = input.read(&mut key_buf) {
-                    for idx in 0..count {
-                        let b = key_buf.get(idx).unwrap();
-                        //info!("{:?} <- Char entered!",b);
-                        if *b == 3 {
-                            //drop(out);
-                            std::process::exit(0); // Ctrl+C = exit immediate
-                        } else if *b == 13 {
-                            //println!("BUFFER: {:?}", &input_buf.lock().unwrap());
-                            input_buf.lock().unwrap().clear();
-                        } else {
-                            input_buf.lock().unwrap().push(*b as char);
-                        }
+            if let Ok(count) = input.read(&mut key_buf) {
+                for idx in 0..count {
+                    let b = key_buf.get(idx).unwrap();
+                    info!("{:?} <- Char entered!", b);
+                    if *b == 3 {
+                        //drop(out);
+                        std::process::exit(0); // Ctrl+C = exit immediate
+                    } else if *b == 13 {
+                        //println!("BUFFER: {:?}", &input_buf.lock().unwrap());
+                        input_buf.lock().unwrap().clear();
+                    } else {
+                        input_buf.lock().unwrap().push(*b as char);
                     }
                 }
             }
@@ -404,12 +401,7 @@ mod test {
         }
     }
 
-    pub fn swap_write(
-        terminal: &Terminal,
-        cursor: &TerminalCursor,
-        msg: &str,
-        input_buf: &String,
-    ) {
+    pub fn swap_write(terminal: &Terminal, cursor: &TerminalCursor, msg: &str, input_buf: &String) {
         let (_, term_height) = terminal.terminal_size();
         cursor.goto(0, term_height);
         terminal.clear(ClearType::CurrentLine);
@@ -442,8 +434,13 @@ mod test {
                 //let color = color_config.get_color(&record.level()).to_fg_str();
                 //println!("\x1B[{}m[{}][{}] {}\x1B[0m",color,record.level(),record.target(),record.args());
                 //println!("{}",record.args());
-                RawScreen::into_raw_mode().unwrap();
-                swap_write(&terminal,&cursor,&format!("{}",record.args()),&input_buf.lock().unwrap());
+                //RawScreen::into_raw_mode().unwrap();
+                swap_write(
+                    &terminal,
+                    &cursor,
+                    &format!("{}", record.args()),
+                    &input_buf.lock().unwrap(),
+                );
             }))
             .apply()
             .unwrap_or_else(|_| {
@@ -957,16 +954,13 @@ impl<I: Send + Sync + 'static> Component for Removal<I> {
     type Storage = DenseVecStorage<Self>;
 }
 
-
 #[derive(Default, Clone, Deserialize, Serialize)]
 pub struct RemovalPrefab<I> {
     id: I,
 }
 
-impl<'a, I: PartialEq+Clone+Send+Sync+'static> PrefabData<'a> for RemovalPrefab<I> {
-    type SystemData = (
-        WriteStorage<'a, Removal<I>>,
-    );
+impl<'a, I: PartialEq + Clone + Send + Sync + 'static> PrefabData<'a> for RemovalPrefab<I> {
+    type SystemData = (WriteStorage<'a, Removal<I>>,);
     type Result = ();
 
     fn load_prefab(
