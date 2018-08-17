@@ -4,11 +4,13 @@ extern crate serde;
 extern crate ron;
 #[macro_use]
 extern crate log;
-//extern crate crossterm;
+extern crate crossterm;
 extern crate dirty;
 extern crate fern;
 extern crate partial_function;
 extern crate rand;
+#[macro_use]
+extern crate lazy_static;
 
 use rand::{thread_rng, Rng};
 
@@ -43,12 +45,24 @@ use std::ops::{Add, Sub};
 use std::path::Path;
 use std::vec::IntoIter;
 
-/*use crossterm::cursor::*;
-use crossterm::input::*;
-use crossterm::raw::*;
-use crossterm::terminal::*;
-use crossterm::*;
-use crossterm::terminal::terminal::Terminal;*/
+use crossterm::{Crossterm, Screen};
+use crossterm::terminal::{terminal, ClearType, Terminal};
+use crossterm::cursor::{TerminalCursor};
+use crossterm::style::Color;
+use crossterm::screen::RawScreen;
+
+use std::thread::sleep;
+use std::sync::{Arc,Mutex};
+use std::time::Duration;
+
+
+lazy_static! {
+    static ref CROSSTERM:Crossterm = {
+    	let screen = Screen::new(true);
+    	Crossterm::new(&screen)
+    };
+}
+
 
 /// Loads asset from the so-called asset packs
 /// It caches assets which you can manually load or unload on demand.
@@ -289,32 +303,6 @@ where
     type Storage = VecStorage<Self>;
 }
 
-/*pub struct CustomTerminal{
-    pub terminal: Box<Terminal>,
-    pub raw_terminal: RawTerminal,
-    pub cursor: Box<TerminalCursor>,
-    pub input: AsyncReader,
-}
-
-impl CustomTerminal{
-    pub fn new() -> Self{
-        let context = Context::new();
-        let mut terminal = terminal(&context);
-        let mut raw_terminal = stdout().into_raw_mode(context.clone()).unwrap();
-        let mut input = input(&context).read_async();
-        let mut cursor = cursor(&context);
-        CustomTerminal{
-            terminal,
-            raw_terminal,
-            cursor,
-            input,
-        }
-    }
-}
-
-// Safe because context is never leaked out
-unsafe impl Send for CustomTerminal{}*/
-
 #[cfg(test)]
 mod test {
     use *;
@@ -377,55 +365,63 @@ mod test {
         assert_eq!(asset_loader.resolve_path("config/ovall"),Some(format!("{}/test/assets/mod2/config/ovall",env!("CARGO_MANIFEST_DIR")).to_string()))
     }*/
 
-    /*#[test]
+    #[test]
     pub fn crossterm() {
-        let terminal = Arc::new(Mutex::new(CustomTerminal::new()));
+        //let crossterm = Arc::new(Crossterm::new());
+        RawScreen::into_raw_mode().unwrap();
+        let terminal = CROSSTERM.terminal();
+        let cursor = CROSSTERM.cursor();
+
+        let mut input = CROSSTERM.input().read_async();
 
         let mut input_buf = Arc::new(Mutex::new(String::new()));
         let mut key_buf = [0 as u8; 32];
         
-        start_logger(terminal.clone(),input_buf.clone());
+        start_logger(input_buf.clone());
         
         loop {
-            let (term_width, term_height) = terminal.lock().unwrap().terminal.terminal_size();
+            let (_, term_height) = terminal.terminal_size();
             //swap_write(&mut term, "random stuff", &input_buf.lock().unwrap());
             info!("random stuff");
-            // NO LOG CAN HAPPEN IN THIS SCOPE! (deadlock)
             {
-            let mut term = terminal.lock().unwrap();
-            if let Ok(count) = term.input.read(&mut key_buf) {
-                for idx in 0..count {
-                    let b = key_buf.get(idx).unwrap();
-                    //info!("{:?} <- Char entered!",b);
-                    if *b == 3 {
-                        //drop(out);
-                        std::process::exit(0); // Ctrl+C = exit immediate
-                    } else if *b == 13 {
-                        //println!("BUFFER: {:?}", &input_buf.lock().unwrap());
-                        input_buf.lock().unwrap().clear();
-                    } else {
-                        input_buf.lock().unwrap().push(*b as char);
+                if let Ok(count) = input.read(&mut key_buf) {
+                    for idx in 0..count {
+                        let b = key_buf.get(idx).unwrap();
+                        //info!("{:?} <- Char entered!",b);
+                        if *b == 3 {
+                            //drop(out);
+                            std::process::exit(0); // Ctrl+C = exit immediate
+                        } else if *b == 13 {
+                            //println!("BUFFER: {:?}", &input_buf.lock().unwrap());
+                            input_buf.lock().unwrap().clear();
+                        } else {
+                            input_buf.lock().unwrap().push(*b as char);
+                        }
                     }
                 }
-            }
             }
             sleep(Duration::from_millis(100));
         }
     }
 
     pub fn swap_write(
-        terminal: &mut CustomTerminal,
+        terminal: &Terminal,
+        cursor: &TerminalCursor,
         msg: &str,
         input_buf: &String,
     ) {
-        let (term_width, term_height) = terminal.terminal.terminal_size();
-        terminal.cursor.goto(0, term_height);
-        terminal.terminal.clear(ClearType::CurrentLine);
-        terminal.terminal.write(format!("{}\n\r>{}", msg, input_buf));
+        let (_, term_height) = terminal.terminal_size();
+        cursor.goto(0, term_height);
+        terminal.clear(ClearType::CurrentLine);
+        terminal.write(format!("{}\r\n", msg));
+        terminal.write(format!(">{}", input_buf));
     }
 
-    pub fn start_logger(terminal: Arc<Mutex<CustomTerminal>>, input_buf: Arc<Mutex<String>>) {
+    //pub fn start_logger(terminal: Arc<Terminal<'static>>, cursor: Arc<TerminalCursor<'static>>, input_buf: Arc<Mutex<String>>) {
+    pub fn start_logger(input_buf: Arc<Mutex<String>>) {
         let color_config = fern::colors::ColoredLevelConfig::new();
+        let terminal = CROSSTERM.terminal();
+        let cursor = CROSSTERM.cursor();
 
         fern::Dispatch::new()
             .format(move |out, message, record| {
@@ -446,13 +442,14 @@ mod test {
                 //let color = color_config.get_color(&record.level()).to_fg_str();
                 //println!("\x1B[{}m[{}][{}] {}\x1B[0m",color,record.level(),record.target(),record.args());
                 //println!("{}",record.args());
-                swap_write(&mut terminal.lock().unwrap(),&format!("{}",record.args()),&input_buf.lock().unwrap());
+                RawScreen::into_raw_mode().unwrap();
+                swap_write(&terminal,&cursor,&format!("{}",record.args()),&input_buf.lock().unwrap());
             }))
             .apply()
             .unwrap_or_else(|_| {
                 error!("Global logger already set, amethyst-extra logger not used!")
             });
-    }*/
+    }
 }
 
 /*pub trait AssetToFormat<T> where T: Sized{
