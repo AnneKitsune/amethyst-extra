@@ -4,7 +4,7 @@ extern crate serde;
 extern crate ron;
 #[macro_use]
 extern crate log;
-extern crate crossterm;
+//extern crate crossterm;
 extern crate dirty;
 extern crate fern;
 extern crate partial_function;
@@ -44,23 +44,22 @@ use std::marker::PhantomData;
 use std::ops::{Add, Sub};
 use std::path::Path;
 use std::vec::IntoIter;
-
-use crossterm::cursor::TerminalCursor;
-use crossterm::screen::RawScreen;
-use crossterm::style::Color;
-use crossterm::terminal::{terminal, ClearType, Terminal};
-use crossterm::{Crossterm, Screen};
-
 use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 
-lazy_static! {
+/*use crossterm::cursor::TerminalCursor;
+use crossterm::screen::RawScreen;
+use crossterm::style::Color;
+use crossterm::terminal::{terminal, ClearType, Terminal};
+use crossterm::{Crossterm, Screen};*/
+
+/*lazy_static! {
     static ref CROSSTERM: Crossterm = {
         let screen = Screen::new(true);
         Crossterm::new(&screen)
     };
-}
+}*/
 
 /// Loads asset from the so-called asset packs
 /// It caches assets which you can manually load or unload on demand.
@@ -319,6 +318,87 @@ mod test {
             "/base/",
         );
     }
+    
+    #[test]
+    fn normal_camera_large_lossy_horizontal() {
+        let aspect = 2.0 / 1.0;
+        let cam = NormalOrthoCamera {
+            mode: CameraNormalizeMode::Lossy {stretch_direction: Axis2::X},
+        };
+        assert_eq!((-0.5,1.5,0.0,1.0) ,cam.camera_offsets(aspect));
+    }
+
+    #[test]
+    fn normal_camera_large_lossy_vertical() {
+        let aspect = 2.0 / 1.0;
+        let cam = NormalOrthoCamera {
+            mode: CameraNormalizeMode::Lossy {stretch_direction: Axis2::Y},
+        };
+        assert_eq!((0.0,1.0,0.25,0.75) ,cam.camera_offsets(aspect));
+    }
+
+    #[test]
+    fn normal_camera_high_lossy_horizontal() {
+        let aspect = 1.0 / 2.0;
+        let cam = NormalOrthoCamera {
+            mode: CameraNormalizeMode::Lossy {stretch_direction: Axis2::X},
+        };
+        assert_eq!((0.25,0.75,0.0,1.0) ,cam.camera_offsets(aspect));
+    }
+
+    #[test]
+    fn normal_camera_high_lossy_vertical() {
+        let aspect = 1.0 / 2.0;
+        let cam = NormalOrthoCamera {
+            mode: CameraNormalizeMode::Lossy {stretch_direction: Axis2::Y},
+        };
+        assert_eq!((0.0,1.0,-0.5,1.5) ,cam.camera_offsets(aspect));
+    }
+
+    #[test]
+    fn normal_camera_square_lossy_horizontal() {
+        let aspect = 1.0 / 1.0;
+        let cam = NormalOrthoCamera {
+            mode: CameraNormalizeMode::Lossy {stretch_direction: Axis2::X},
+        };
+        assert_eq!((0.0,1.0,0.0,1.0) ,cam.camera_offsets(aspect));
+    }
+
+    #[test]
+    fn normal_camera_square_lossy_vertical() {
+        let aspect = 1.0 / 1.0;
+        let cam = NormalOrthoCamera {
+            mode: CameraNormalizeMode::Lossy {stretch_direction: Axis2::Y},
+        };
+        assert_eq!((0.0,1.0,0.0,1.0) ,cam.camera_offsets(aspect));
+    }
+
+    #[test]
+    fn normal_camera_large_shrink() {
+        let aspect = 2.0 / 1.0;
+        let cam = NormalOrthoCamera {
+            mode: CameraNormalizeMode::Shrink,
+        };
+        assert_eq!((-0.5,1.5,0.0,1.0) ,cam.camera_offsets(aspect));
+    }
+
+    #[test]
+    fn normal_camera_high_shrink() {
+        let aspect = 1.0 / 2.0;
+        let cam = NormalOrthoCamera {
+            mode: CameraNormalizeMode::Shrink,
+        };
+        assert_eq!((0.0,1.0,-0.5,1.5) ,cam.camera_offsets(aspect));
+    }
+
+    #[test]
+    fn normal_camera_square_shrink() {
+        let aspect = 1.0 / 1.0;
+        let cam = NormalOrthoCamera {
+            mode: CameraNormalizeMode::Shrink,
+        };
+        assert_eq!((0.0,1.0,0.0,1.0) ,cam.camera_offsets(aspect));
+    }
 
     #[test]
     fn asset_loader_resolve_unique_main() {
@@ -363,7 +443,7 @@ mod test {
         assert_eq!(asset_loader.resolve_path("config/ovall"),Some(format!("{}/test/assets/mod2/config/ovall",env!("CARGO_MANIFEST_DIR")).to_string()))
     }*/
 
-    #[test]
+/*    #[test]
     pub fn crossterm() {
         //let crossterm = Arc::new(Crossterm::new());
         RawScreen::into_raw_mode().unwrap();
@@ -446,7 +526,7 @@ mod test {
             .unwrap_or_else(|_| {
                 error!("Global logger already set, amethyst-extra logger not used!")
             });
-    }
+    }*/
 }
 
 /*pub trait AssetToFormat<T> where T: Sized{
@@ -744,38 +824,113 @@ impl<'a> System<'a> for TimedDestroySystem {
 }
 
 #[derive(Default)]
+pub struct NormalOrthoCamera {
+    pub mode: CameraNormalizeMode,
+}
+
+impl NormalOrthoCamera {
+    pub fn camera_offsets(&self, ratio: f32) -> (f32,f32,f32,f32) {
+        self.mode.camera_offsets(ratio)
+    }
+}
+
+pub enum CameraNormalizeMode {
+    /// Using an aspect ratio of 1:1, tries to ajust the matrix values of the camera so
+    /// that the direction opposite to the stretch_direction is always [0,1].
+    /// Scene space can be lost on the specified stretch_direction.
+    Lossy {stretch_direction: Axis2},
+    
+    /// Scales the render dynamically to ensure no space is lost in the [0,1] range on any axis.
+    Shrink,
+}
+
+impl CameraNormalizeMode {
+    pub fn camera_offsets(&self, aspect_ratio: f32) -> (f32,f32,f32,f32) {
+        match self {
+            &CameraNormalizeMode::Lossy {ref stretch_direction} => {
+                match stretch_direction {
+                    Axis2::X => {
+                        CameraNormalizeMode::lossy_x(aspect_ratio)
+                    },
+                    Axis2::Y => {
+                        CameraNormalizeMode::lossy_y(aspect_ratio)
+                    },
+                }
+            },
+            &CameraNormalizeMode::Shrink => {
+                if aspect_ratio > 1.0 {
+                    CameraNormalizeMode::lossy_x(aspect_ratio)
+                } else if aspect_ratio < 1.0 {
+                    CameraNormalizeMode::lossy_y(aspect_ratio)
+                } else {
+                    (0.0,1.0,0.0,1.0)
+                }
+            },
+        }
+    }
+    
+    fn lossy_x(aspect_ratio: f32) -> (f32,f32,f32,f32) {
+        let offset = (aspect_ratio - 1.0) / 2.0;
+        (-offset, 1.0 + offset, 0.0, 1.0)
+    }
+
+    fn lossy_y(aspect_ratio: f32) -> (f32,f32,f32,f32) {
+        let offset = (1.0 / aspect_ratio - 1.0) / 2.0;
+        (0.0, 1.0, -offset, 1.0 + offset)
+    }
+}
+
+impl Default for CameraNormalizeMode {
+    fn default() -> Self {
+        CameraNormalizeMode::Shrink
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Axis2 {
+    // The X axis. Often the horizontal (left-right) position.
+    X,
+    // The Y axis. Often the vertical height.
+    Y,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Axis3 {
+    // The X axis. Often the horizontal (left-right) position.
+    X,
+    // The Y axis. Often the vertical height.
+    Y,
+    // The Z axis. Often the depth.
+    Z,
+}
+
+
+#[derive(Default)]
 pub struct NormalOrthoCameraSystem {
     aspect_ratio_cache: f32,
 }
 
 impl<'a> System<'a> for NormalOrthoCameraSystem {
-    type SystemData = (ReadExpect<'a, ScreenDimensions>, WriteStorage<'a, Camera>);
-    fn run(&mut self, (dimensions, mut cameras): Self::SystemData) {
+    type SystemData = (ReadExpect<'a, ScreenDimensions>, WriteStorage<'a, Camera>, ReadStorage<'a, NormalOrthoCamera>);
+    fn run(&mut self, (dimensions, mut cameras, ortho_cameras): Self::SystemData) {
         let aspect = dimensions.aspect_ratio();
-        //println!("Aspect ratio: {}", aspect);
         if aspect != self.aspect_ratio_cache {
             self.aspect_ratio_cache = aspect;
 
-            // If negative, will remove on the x axis instead of stretching the y
-            let x_offset = (aspect - 1.0) / 2.0;
-
-            for mut camera in (&mut cameras).join() {
+            for mut (camera, ortho_camera) in (&mut cameras, &ortho_cameras).join() {
                 //println!("CHANGING CAM RATIO! {:?}",Ortho{left: -x_offset,right: 1.0 + x_offset,bottom: 0.0,top: 1.0,near: 0.1,far: 2000.0});
+                let offsets = ortho_camera.camera_offsets(aspect);
                 camera.proj = Ortho {
-                    left: -x_offset,
-                    right: 1.0 + x_offset,
-                    bottom: 0.0,
-                    top: 1.0,
+                    left: offsets.0,
+                    right: offsets.1,
+                    bottom: offsets.2,
+                    top: offsets.3,
                     near: 0.1,
-                    far: 2000.0,
+                    far: 1000.0,
                 }.into();
             }
         }
-
-        //random test
-        /*for mut camera in (&mut cameras).join(){
-            camera.proj = Ortho{left: 0.0,right: 1.0,bottom: -80.0,top: 1.0,near: 0.1,far: 2000.0}.into();
-        }*/    }
+    }
 }
 
 pub struct UiTimer {

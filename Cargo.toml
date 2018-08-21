@@ -11,7 +11,8 @@ ron = "0.2"
 log = "0.4"
 dirty = "0.2"
 fern = { version = "0.5", features = ["colored"] }
-crossterm = { path= "../crosstermdev" }
+#crossterm = { git = "https://github.com/TimonPost/crossterm/", branch = "development" }
+#crossterm = { path = "../crosstermdev" }
 partial_function = "0.4.0"
 rand = "0.5.5"
 lazy_static = "1.1.0"
