@@ -834,6 +834,10 @@ impl NormalOrthoCamera {
     }
 }
 
+impl Component for NormalOrthoCamera {
+    type Storage = DenseVecStorage<Self>;
+}
+
 pub enum CameraNormalizeMode {
     /// Using an aspect ratio of 1:1, tries to ajust the matrix values of the camera so
     /// that the direction opposite to the stretch_direction is always [0,1].
@@ -917,7 +921,7 @@ impl<'a> System<'a> for NormalOrthoCameraSystem {
         if aspect != self.aspect_ratio_cache {
             self.aspect_ratio_cache = aspect;
 
-            for mut (camera, ortho_camera) in (&mut cameras, &ortho_cameras).join() {
+            for (mut camera, ortho_camera) in (&mut cameras, &ortho_cameras).join() {
                 //println!("CHANGING CAM RATIO! {:?}",Ortho{left: -x_offset,right: 1.0 + x_offset,bottom: 0.0,top: 1.0,near: 0.1,far: 2000.0});
                 let offsets = ortho_camera.camera_offsets(aspect);
                 camera.proj = Ortho {
@@ -1143,55 +1147,7 @@ pub fn exec_removal<I: Send + Sync + PartialEq + 'static>(
     }
 }
 
-/*pub struct EmptyState;
-impl<'a,'b> State<GameData<'a,'b>> for EmptyState{
-
-}
-
-#[derive(Default)]
-pub struct RemoveOnStateChange;
-impl Component for RemoveOnStateChange{
-    type Storage = NullStorage<Self>;
-}
-
-pub struct ComplexState<'a,'b,T> where T: State<GameData<'a,'b>>{
-    internal: T,
-    dispatch: Option<Dispatcher<'static,'static>>,
-}
-
-impl<'a,'b,T> ComplexState<'a,'b,T> where T: State<GameData<'a,'b>>{
-
-    pub fn new(state: T, dispatch: Option<Dispatcher<'static,'static>>) -> Self {
-        ComplexState{
-            internal: state,
-            dispatch,
-        }
-    }
-}
-
-impl<'a,'b,T> State for ComplexState<T> where T: State<GameData<'a,'b>>{
-    //forward everything to internal state, but add operations to remove collected entities
-    fn on_start(&mut self, mut world: &mut World) {
-        if let Some(dis) = self.dispatch.as_mut(){
-            dis.setup(&mut world.res);
-        }
-        self.internal.on_start(&mut world);
-    }
-
-    fn update(&mut self, mut world: &mut World) -> Trans {
-        if let Some(dis) = self.dispatch.as_mut(){
-            dis.dispatch(&mut world.res);
-        }
-        self.internal.update(&mut world)
-    }
-
-    fn handle_event(&mut self, mut world: &mut World, event: Event) -> Trans {
-        self.internal.handle_event(&mut world, event)
-    }
-}
-
-
-pub struct NavigationButton{
+/*pub struct NavigationButton{
     pub target: fn() -> Trans,
 }
 
@@ -1209,16 +1165,3 @@ impl Component for NavigationButton{
   item/inventory system
 
 */
-/*#[cfg(test)]
-mod tests {
-    #[test]
-    fn asset_loader_resolve_path() {
-        let mut al = AssetLoader::new(format!("{}/assets/", env!("CARGO_MANIFEST_DIR")),"base");
-        assert_eq!(al.resolve_path("test/test.txt"),"assets/base/test/test.txt")
-    }
-    #[test]
-    fn asset_loader_resolve_path_override() {
-        let mut al = AssetLoader::new(format!("{}/assets/", env!("CARGO_MANIFEST_DIR")),"base");
-        assert_eq!(al.resolve_path("test/test2.txt"),"assets/override/test/test2.txt")
-    }
-}*/
