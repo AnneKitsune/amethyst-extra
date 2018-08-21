@@ -4,7 +4,7 @@ extern crate serde;
 extern crate ron;
 #[macro_use]
 extern crate log;
-//extern crate crossterm;
+extern crate crossterm;
 extern crate dirty;
 extern crate fern;
 extern crate partial_function;
@@ -48,18 +48,18 @@ use std::sync::{Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 
-/*use crossterm::cursor::TerminalCursor;
+use crossterm::cursor::TerminalCursor;
 use crossterm::screen::RawScreen;
 use crossterm::style::Color;
 use crossterm::terminal::{terminal, ClearType, Terminal};
-use crossterm::{Crossterm, Screen};*/
+use crossterm::{Crossterm, Screen};
 
-/*lazy_static! {
+lazy_static! {
     static ref CROSSTERM: Crossterm = {
         let screen = Screen::new(true);
         Crossterm::new(&screen)
     };
-}*/
+}
 
 /// Loads asset from the so-called asset packs
 /// It caches assets which you can manually load or unload on demand.
@@ -443,14 +443,14 @@ mod test {
         assert_eq!(asset_loader.resolve_path("config/ovall"),Some(format!("{}/test/assets/mod2/config/ovall",env!("CARGO_MANIFEST_DIR")).to_string()))
     }*/
 
-/*    #[test]
+    #[test]
     pub fn crossterm() {
-        //let crossterm = Arc::new(Crossterm::new());
-        RawScreen::into_raw_mode().unwrap();
+        //RawScreen::into_raw_mode().unwrap();
         let terminal = CROSSTERM.terminal();
         let cursor = CROSSTERM.cursor();
+        cursor.hide();
 
-        let mut input = CROSSTERM.input().read_async();
+        let mut input = CROSSTERM.input().read_async().bytes();
 
         let mut input_buf = Arc::new(Mutex::new(String::new()));
         let mut key_buf = [0 as u8; 32];
@@ -459,23 +459,24 @@ mod test {
 
         loop {
             let (_, term_height) = terminal.terminal_size();
-            //swap_write(&mut term, "random stuff", &input_buf.lock().unwrap());
-            //while let Some(Ok(b)) = input.next(){
             info!("random stuff");
-            if let Ok(count) = input.read(&mut key_buf) {
-                for idx in 0..count {
-                    let b = key_buf.get(idx).unwrap();
+            while let Some(Ok(b)) = input.next(){
                     info!("{:?} <- Char entered!", b);
-                    if *b == 3 {
-                        //drop(out);
-                        std::process::exit(0); // Ctrl+C = exit immediate
-                    } else if *b == 13 {
-                        //println!("BUFFER: {:?}", &input_buf.lock().unwrap());
+                    if b == 3 {
+                        // Ctrl+C = exit
+                        terminal.exit();
+                        return;
+                    } else if b == b'\n' {
+                        let cmd = input_buf.lock().unwrap().clone();
+                        info!("{}", cmd);
                         input_buf.lock().unwrap().clear();
+                        let input = CROSSTERM.input().read_async().bytes();
+                    } else if b == 127 {
+                        // Backspace
+                        input_buf.lock().unwrap().pop();
                     } else {
-                        input_buf.lock().unwrap().push(*b as char);
+                        input_buf.lock().unwrap().push(b as char);
                     }
-                }
             }
             sleep(Duration::from_millis(100));
         }
@@ -489,7 +490,6 @@ mod test {
         terminal.write(format!(">{}", input_buf));
     }
 
-    //pub fn start_logger(terminal: Arc<Terminal<'static>>, cursor: Arc<TerminalCursor<'static>>, input_buf: Arc<Mutex<String>>) {
     pub fn start_logger(input_buf: Arc<Mutex<String>>) {
         let color_config = fern::colors::ColoredLevelConfig::new();
         let terminal = CROSSTERM.terminal();
@@ -526,7 +526,7 @@ mod test {
             .unwrap_or_else(|_| {
                 error!("Global logger already set, amethyst-extra logger not used!")
             });
-    }*/
+    }
 }
 
 /*pub trait AssetToFormat<T> where T: Sized{
