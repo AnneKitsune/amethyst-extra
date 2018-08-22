@@ -45,7 +45,7 @@ use std::ops::{Add, Sub};
 use std::path::Path;
 use std::vec::IntoIter;
 use std::sync::{Arc, Mutex};
-use std::thread::sleep;
+use std::thread::{sleep,spawn};
 use std::time::Duration;
 
 use crossterm::cursor::TerminalCursor;
@@ -445,10 +445,9 @@ mod test {
 
     #[test]
     pub fn crossterm() {
-        //RawScreen::into_raw_mode().unwrap();
         let terminal = CROSSTERM.terminal();
         let cursor = CROSSTERM.cursor();
-        cursor.hide();
+        //cursor.hide();
 
         let mut input = CROSSTERM.input().read_async().bytes();
 
@@ -456,6 +455,13 @@ mod test {
         let mut key_buf = [0 as u8; 32];
 
         start_logger(input_buf.clone());
+
+        spawn(|| {
+            loop {
+                info!("More random stuff");
+                sleep(Duration::from_millis(52));
+            }
+        });
 
         loop {
             let (_, term_height) = terminal.terminal_size();
@@ -467,15 +473,20 @@ mod test {
                         terminal.exit();
                         return;
                     } else if b == b'\n' {
-                        let cmd = input_buf.lock().unwrap().clone();
-                        info!("{}", cmd);
-                        input_buf.lock().unwrap().clear();
+                        info!(">{}", input_buf.lock().unwrap());
+                        let mut buffer = input_buf.lock().unwrap();
+                        buffer.clear();
+                        refresh_input_line(&terminal, &cursor, &buffer);
                         let input = CROSSTERM.input().read_async().bytes();
-                    } else if b == 127 {
-                        // Backspace
-                        input_buf.lock().unwrap().pop();
+                    } else if b == 127 || b == 8 {
+                        // Delete || Backspace
+                        let mut buffer = input_buf.lock().unwrap();
+                        buffer.pop();
+                        refresh_input_line(&terminal, &cursor, &buffer);
                     } else {
-                        input_buf.lock().unwrap().push(b as char);
+                        let mut buffer = input_buf.lock().unwrap();
+                        buffer.push(b as char);
+                        refresh_input_line(&terminal, &cursor, &buffer);
                     }
             }
             sleep(Duration::from_millis(100));
@@ -486,7 +497,14 @@ mod test {
         let (_, term_height) = terminal.terminal_size();
         cursor.goto(0, term_height);
         terminal.clear(ClearType::CurrentLine);
-        terminal.write(format!("{}\r\n", msg));
+        terminal.write(format!("{}\r\n>{}", msg, input_buf));
+        //terminal.write(format!(">{}", input_buf));
+    }
+    
+    pub fn refresh_input_line(terminal: &Terminal, cursor: &TerminalCursor, input_buf: &String) {
+        let (_, term_height) = terminal.terminal_size();
+        cursor.goto(0, term_height);
+        terminal.clear(ClearType::CurrentLine);
         terminal.write(format!(">{}", input_buf));
     }
 
