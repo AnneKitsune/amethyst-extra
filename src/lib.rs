@@ -477,7 +477,7 @@ mod test {
                         let mut buffer = input_buf.lock().unwrap();
                         buffer.clear();
                         refresh_input_line(&terminal, &cursor, &buffer);
-                        let input = CROSSTERM.input().read_async().bytes();
+                        //let input = CROSSTERM.input().read_async().bytes();
                     } else if b == 127 || b == 8 {
                         // Delete || Backspace
                         let mut buffer = input_buf.lock().unwrap();
