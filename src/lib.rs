@@ -49,14 +49,15 @@ use std::thread::{sleep,spawn};
 use std::time::Duration;
 
 use crossterm::cursor::TerminalCursor;
-use crossterm::screen::RawScreen;
+//use crossterm::screen::RawScreen;
 use crossterm::style::Color;
 use crossterm::terminal::{terminal, ClearType, Terminal};
 use crossterm::{Crossterm, Screen};
 
 lazy_static! {
     static ref CROSSTERM: Crossterm = {
-        let screen = Screen::new(true);
+        let mut screen = Screen::new(true);
+        screen.disable_drop();
         Crossterm::new(&screen)
     };
 }
@@ -472,8 +473,8 @@ mod test {
                         // Ctrl+C = exit
                         terminal.exit();
                         return;
-                    } else if b == b'\n' {
-                        info!(">{}", input_buf.lock().unwrap());
+                    } else if b == b'\n' || b == 13{
+                        //info!(">{}", input_buf.lock().unwrap());
                         let mut buffer = input_buf.lock().unwrap();
                         buffer.clear();
                         refresh_input_line(&terminal, &cursor, &buffer);
