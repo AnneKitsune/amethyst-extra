@@ -984,6 +984,7 @@ pub trait UiAutoText: Component {
     fn get_text(&self) -> String;
 }
 
+#[derive(Default)]
 pub struct UiAutoTextSystem<T> {
     phantom: PhantomData<T>,
 }
