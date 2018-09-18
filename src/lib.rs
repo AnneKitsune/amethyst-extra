@@ -17,35 +17,35 @@ extern crate derive_new;
 extern crate specs_derive;
 extern crate amethyst_rhusics;
 
-use amethyst_rhusics::rhusics_core::physics3d::Velocity3;
-use amethyst::core::cgmath::Vector2;
-use amethyst::core::cgmath::EuclideanSpace;
-use amethyst_rhusics::rhusics_ecs::collide3d::DynamicBoundingVolumeTree3;
-use amethyst_rhusics::collision::dbvt::query_ray;
-use amethyst::renderer::PngFormat;
-use amethyst::renderer::ScreenDimensions;
-use amethyst::renderer::Camera;
-use amethyst::renderer::Event;
-use amethyst::renderer::DrawFlat;
-use amethyst::renderer::TextureMetadata;
-use amethyst_rhusics::rhusics_core::Pose;
-use amethyst::renderer::Texture;
-use amethyst::renderer::MaterialDefaults;
-use amethyst::renderer::Material;
-use amethyst::renderer::Mesh;
-use amethyst::renderer::PosTex;
 use amethyst::controls::FlyControlTag;
-use amethyst::renderer::DeviceEvent;
-use amethyst_rhusics::rhusics_core::NextFrame;
-use amethyst::shrev::EventChannel;
-use amethyst::controls::WindowFocus;
 use amethyst::controls::HideCursor;
-use amethyst::core::cgmath::{Deg,Quaternion, Rotation3, Point3, Basis3};
-use amethyst_rhusics::collision::{Aabb3, Ray3};
-use amethyst_rhusics::rhusics_ecs::physics3d::BodyPose3;
+use amethyst::controls::WindowFocus;
+use amethyst::core::cgmath::EuclideanSpace;
 use amethyst::core::cgmath::InnerSpace;
-use amethyst_rhusics::rhusics_core::ForceAccumulator;
+use amethyst::core::cgmath::Vector2;
 use amethyst::core::cgmath::Vector3;
+use amethyst::core::cgmath::{Basis3, Deg, Point3, Quaternion, Rotation3};
+use amethyst::renderer::Camera;
+use amethyst::renderer::DeviceEvent;
+use amethyst::renderer::DrawFlat;
+use amethyst::renderer::Event;
+use amethyst::renderer::Material;
+use amethyst::renderer::MaterialDefaults;
+use amethyst::renderer::Mesh;
+use amethyst::renderer::PngFormat;
+use amethyst::renderer::PosTex;
+use amethyst::renderer::ScreenDimensions;
+use amethyst::renderer::Texture;
+use amethyst::renderer::TextureMetadata;
+use amethyst::shrev::EventChannel;
+use amethyst_rhusics::collision::dbvt::query_ray;
+use amethyst_rhusics::collision::{Aabb3, Ray3};
+use amethyst_rhusics::rhusics_core::physics3d::Velocity3;
+use amethyst_rhusics::rhusics_core::ForceAccumulator;
+use amethyst_rhusics::rhusics_core::NextFrame;
+use amethyst_rhusics::rhusics_core::Pose;
+use amethyst_rhusics::rhusics_ecs::collide3d::DynamicBoundingVolumeTree3;
+use amethyst_rhusics::rhusics_ecs::physics3d::BodyPose3;
 use rand::{thread_rng, Rng};
 
 use amethyst::animation::AnimationBundle;
@@ -58,12 +58,13 @@ use amethyst::core::*;
 use amethyst::ecs::storage::NullStorage;
 use amethyst::ecs::world::EntitiesRes;
 use amethyst::ecs::*;
+use amethyst::input::get_input_axis_simple;
 use amethyst::input::*;
 use amethyst::prelude::*;
 use amethyst::ui::{UiBundle, UiText};
 use amethyst::Result;
-use amethyst::input::get_input_axis_simple;
 use dirty::Dirty;
+use partial_function::*;
 use partial_function::*;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -77,11 +78,10 @@ use std::iter::Cycle;
 use std::marker::PhantomData;
 use std::ops::{Add, Sub};
 use std::path::Path;
-use std::vec::IntoIter;
 use std::sync::{Arc, Mutex};
-use std::thread::{sleep,spawn};
+use std::thread::{sleep, spawn};
 use std::time::Duration;
-use partial_function::*;
+use std::vec::IntoIter;
 
 use crossterm::cursor::TerminalCursor;
 //use crossterm::screen::RawScreen;
@@ -196,8 +196,7 @@ impl AssetLoader {
                             let path = &e.unwrap().path();
                             let tmp = &path.to_str().unwrap()[self.base_path.len()..];
                             AssetLoader::sanitize_path(&tmp)
-                        })
-                        .collect(),
+                        }).collect(),
                 );
             } else {
                 error!(
@@ -354,59 +353,71 @@ mod test {
             "/base/",
         );
     }
-    
+
     #[test]
     fn normal_camera_large_lossy_horizontal() {
         let aspect = 2.0 / 1.0;
         let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Lossy {stretch_direction: Axis2::X},
+            mode: CameraNormalizeMode::Lossy {
+                stretch_direction: Axis2::X,
+            },
         };
-        assert_eq!((-0.5,1.5,0.0,1.0) ,cam.camera_offsets(aspect));
+        assert_eq!((-0.5, 1.5, 0.0, 1.0), cam.camera_offsets(aspect));
     }
 
     #[test]
     fn normal_camera_large_lossy_vertical() {
         let aspect = 2.0 / 1.0;
         let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Lossy {stretch_direction: Axis2::Y},
+            mode: CameraNormalizeMode::Lossy {
+                stretch_direction: Axis2::Y,
+            },
         };
-        assert_eq!((0.0,1.0,0.25,0.75) ,cam.camera_offsets(aspect));
+        assert_eq!((0.0, 1.0, 0.25, 0.75), cam.camera_offsets(aspect));
     }
 
     #[test]
     fn normal_camera_high_lossy_horizontal() {
         let aspect = 1.0 / 2.0;
         let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Lossy {stretch_direction: Axis2::X},
+            mode: CameraNormalizeMode::Lossy {
+                stretch_direction: Axis2::X,
+            },
         };
-        assert_eq!((0.25,0.75,0.0,1.0) ,cam.camera_offsets(aspect));
+        assert_eq!((0.25, 0.75, 0.0, 1.0), cam.camera_offsets(aspect));
     }
 
     #[test]
     fn normal_camera_high_lossy_vertical() {
         let aspect = 1.0 / 2.0;
         let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Lossy {stretch_direction: Axis2::Y},
+            mode: CameraNormalizeMode::Lossy {
+                stretch_direction: Axis2::Y,
+            },
         };
-        assert_eq!((0.0,1.0,-0.5,1.5) ,cam.camera_offsets(aspect));
+        assert_eq!((0.0, 1.0, -0.5, 1.5), cam.camera_offsets(aspect));
     }
 
     #[test]
     fn normal_camera_square_lossy_horizontal() {
         let aspect = 1.0 / 1.0;
         let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Lossy {stretch_direction: Axis2::X},
+            mode: CameraNormalizeMode::Lossy {
+                stretch_direction: Axis2::X,
+            },
         };
-        assert_eq!((0.0,1.0,0.0,1.0) ,cam.camera_offsets(aspect));
+        assert_eq!((0.0, 1.0, 0.0, 1.0), cam.camera_offsets(aspect));
     }
 
     #[test]
     fn normal_camera_square_lossy_vertical() {
         let aspect = 1.0 / 1.0;
         let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Lossy {stretch_direction: Axis2::Y},
+            mode: CameraNormalizeMode::Lossy {
+                stretch_direction: Axis2::Y,
+            },
         };
-        assert_eq!((0.0,1.0,0.0,1.0) ,cam.camera_offsets(aspect));
+        assert_eq!((0.0, 1.0, 0.0, 1.0), cam.camera_offsets(aspect));
     }
 
     #[test]
@@ -415,7 +426,7 @@ mod test {
         let cam = NormalOrthoCamera {
             mode: CameraNormalizeMode::Shrink,
         };
-        assert_eq!((-0.5,1.5,0.0,1.0) ,cam.camera_offsets(aspect));
+        assert_eq!((-0.5, 1.5, 0.0, 1.0), cam.camera_offsets(aspect));
     }
 
     #[test]
@@ -424,7 +435,7 @@ mod test {
         let cam = NormalOrthoCamera {
             mode: CameraNormalizeMode::Shrink,
         };
-        assert_eq!((0.0,1.0,-0.5,1.5) ,cam.camera_offsets(aspect));
+        assert_eq!((0.0, 1.0, -0.5, 1.5), cam.camera_offsets(aspect));
     }
 
     #[test]
@@ -433,7 +444,7 @@ mod test {
         let cam = NormalOrthoCamera {
             mode: CameraNormalizeMode::Shrink,
         };
-        assert_eq!((0.0,1.0,0.0,1.0) ,cam.camera_offsets(aspect));
+        assert_eq!((0.0, 1.0, 0.0, 1.0), cam.camera_offsets(aspect));
     }
 
     #[test]
@@ -492,38 +503,36 @@ mod test {
 
         start_logger(input_buf.clone());
 
-        spawn(|| {
-            loop {
-                info!("More random stuff");
-                sleep(Duration::from_millis(52));
-            }
+        spawn(|| loop {
+            info!("More random stuff");
+            sleep(Duration::from_millis(52));
         });
 
         loop {
             let (_, term_height) = terminal.terminal_size();
             info!("random stuff");
-            while let Some(Ok(b)) = input.next(){
-                    info!("{:?} <- Char entered!", b);
-                    if b == 3 {
-                        // Ctrl+C = exit
-                        terminal.exit();
-                        return;
-                    } else if b == b'\n' || b == 13{
-                        //info!(">{}", input_buf.lock().unwrap());
-                        let mut buffer = input_buf.lock().unwrap();
-                        buffer.clear();
-                        refresh_input_line(&terminal, &cursor, &buffer);
-                        //let input = CROSSTERM.input().read_async().bytes();
-                    } else if b == 127 || b == 8 {
-                        // Delete || Backspace
-                        let mut buffer = input_buf.lock().unwrap();
-                        buffer.pop();
-                        refresh_input_line(&terminal, &cursor, &buffer);
-                    } else {
-                        let mut buffer = input_buf.lock().unwrap();
-                        buffer.push(b as char);
-                        refresh_input_line(&terminal, &cursor, &buffer);
-                    }
+            while let Some(Ok(b)) = input.next() {
+                info!("{:?} <- Char entered!", b);
+                if b == 3 {
+                    // Ctrl+C = exit
+                    terminal.exit();
+                    return;
+                } else if b == b'\n' || b == 13 {
+                    //info!(">{}", input_buf.lock().unwrap());
+                    let mut buffer = input_buf.lock().unwrap();
+                    buffer.clear();
+                    refresh_input_line(&terminal, &cursor, &buffer);
+                //let input = CROSSTERM.input().read_async().bytes();
+                } else if b == 127 || b == 8 {
+                    // Delete || Backspace
+                    let mut buffer = input_buf.lock().unwrap();
+                    buffer.pop();
+                    refresh_input_line(&terminal, &cursor, &buffer);
+                } else {
+                    let mut buffer = input_buf.lock().unwrap();
+                    buffer.push(b as char);
+                    refresh_input_line(&terminal, &cursor, &buffer);
+                }
             }
             sleep(Duration::from_millis(100));
         }
@@ -536,7 +545,7 @@ mod test {
         terminal.write(format!("{}\r\n>{}", msg, input_buf));
         //terminal.write(format!(">{}", input_buf));
     }
-    
+
     pub fn refresh_input_line(terminal: &Terminal, cursor: &TerminalCursor, input_buf: &String) {
         let (_, term_height) = terminal.terminal_size();
         cursor.goto(0, term_height);
@@ -562,8 +571,7 @@ mod test {
                     message = message,
                     color_reset = "\x1B[0m",
                 ))
-            })
-            .level(log::LevelFilter::Debug)
+            }).level(log::LevelFilter::Debug)
             .chain(fern::Output::call(move |record| {
                 //let color = color_config.get_color(&record.level()).to_fg_str();
                 //println!("\x1B[{}m[{}][{}] {}\x1B[0m",color,record.level(),record.target(),record.args());
@@ -575,8 +583,7 @@ mod test {
                     &format!("{}", record.args()),
                     &input_buf.lock().unwrap(),
                 );
-            }))
-            .apply()
+            })).apply()
             .unwrap_or_else(|_| {
                 error!("Global logger already set, amethyst-extra logger not used!")
             });
@@ -735,16 +742,12 @@ pub fn amethyst_gamedata_base_2d(base: &str) -> Result<GameDataBuilder<'static, 
         .with_bundle(TransformBundle::new())?
         .with_bundle(
             InputBundle::<String, String>::new().with_bindings_from_file(&key_bindings_path)?,
-        )?
-        .with_bundle(UiBundle::<String, String>::new())?
-        .with_bundle(
-            AnimationBundle::<u32, Material>::new(
-                "animation_control_system",
-                "sampler_interpolation_system",
-            )
-        )?
-        .with_bundle(AudioBundle::new(|music: &mut Music| music.music.next()))?
-        .with(TimedDestroySystem,"timed_destroy", &[])
+        )?.with_bundle(UiBundle::<String, String>::new())?
+        .with_bundle(AnimationBundle::<u32, Material>::new(
+            "animation_control_system",
+            "sampler_interpolation_system",
+        ))?.with_bundle(AudioBundle::new(|music: &mut Music| music.music.next()))?
+        .with(TimedDestroySystem, "timed_destroy", &[])
         .with_basic_renderer(display_config_path, DrawFlat::<PosTex>::new(), false)
 }
 
@@ -883,7 +886,7 @@ pub struct NormalOrthoCamera {
 }
 
 impl NormalOrthoCamera {
-    pub fn camera_offsets(&self, ratio: f32) -> (f32,f32,f32,f32) {
+    pub fn camera_offsets(&self, ratio: f32) -> (f32, f32, f32, f32) {
         self.mode.camera_offsets(ratio)
     }
 }
@@ -896,24 +899,20 @@ pub enum CameraNormalizeMode {
     /// Using an aspect ratio of 1:1, tries to ajust the matrix values of the camera so
     /// that the direction opposite to the stretch_direction is always [0,1].
     /// Scene space can be lost on the specified stretch_direction.
-    Lossy {stretch_direction: Axis2},
-    
+    Lossy { stretch_direction: Axis2 },
+
     /// Scales the render dynamically to ensure no space is lost in the [0,1] range on any axis.
     Shrink,
 }
 
 impl CameraNormalizeMode {
-    pub fn camera_offsets(&self, aspect_ratio: f32) -> (f32,f32,f32,f32) {
+    pub fn camera_offsets(&self, aspect_ratio: f32) -> (f32, f32, f32, f32) {
         match self {
-            &CameraNormalizeMode::Lossy {ref stretch_direction} => {
-                match stretch_direction {
-                    Axis2::X => {
-                        CameraNormalizeMode::lossy_x(aspect_ratio)
-                    },
-                    Axis2::Y => {
-                        CameraNormalizeMode::lossy_y(aspect_ratio)
-                    },
-                }
+            &CameraNormalizeMode::Lossy {
+                ref stretch_direction,
+            } => match stretch_direction {
+                Axis2::X => CameraNormalizeMode::lossy_x(aspect_ratio),
+                Axis2::Y => CameraNormalizeMode::lossy_y(aspect_ratio),
             },
             &CameraNormalizeMode::Shrink => {
                 if aspect_ratio > 1.0 {
@@ -921,18 +920,18 @@ impl CameraNormalizeMode {
                 } else if aspect_ratio < 1.0 {
                     CameraNormalizeMode::lossy_y(aspect_ratio)
                 } else {
-                    (0.0,1.0,0.0,1.0)
+                    (0.0, 1.0, 0.0, 1.0)
                 }
-            },
+            }
         }
     }
-    
-    fn lossy_x(aspect_ratio: f32) -> (f32,f32,f32,f32) {
+
+    fn lossy_x(aspect_ratio: f32) -> (f32, f32, f32, f32) {
         let offset = (aspect_ratio - 1.0) / 2.0;
         (-offset, 1.0 + offset, 0.0, 1.0)
     }
 
-    fn lossy_y(aspect_ratio: f32) -> (f32,f32,f32,f32) {
+    fn lossy_y(aspect_ratio: f32) -> (f32, f32, f32, f32) {
         let offset = (1.0 / aspect_ratio - 1.0) / 2.0;
         (0.0, 1.0, -offset, 1.0 + offset)
     }
@@ -962,14 +961,17 @@ pub enum Axis3 {
     Z,
 }
 
-
 #[derive(Default)]
 pub struct NormalOrthoCameraSystem {
     aspect_ratio_cache: f32,
 }
 
 impl<'a> System<'a> for NormalOrthoCameraSystem {
-    type SystemData = (ReadExpect<'a, ScreenDimensions>, WriteStorage<'a, Camera>, ReadStorage<'a, NormalOrthoCamera>);
+    type SystemData = (
+        ReadExpect<'a, ScreenDimensions>,
+        WriteStorage<'a, Camera>,
+        ReadStorage<'a, NormalOrthoCamera>,
+    );
     fn run(&mut self, (dimensions, mut cameras, ortho_cameras): Self::SystemData) {
         let aspect = dimensions.aspect_ratio();
         if aspect != self.aspect_ratio_cache {
@@ -1082,7 +1084,8 @@ fn run(&mut self, (follow_mouses,mut transforms, global_transforms, dimension,in
                     -fancy_normalize(y as f32, height),
                     0.0,
                     1.0,
-                ].into();
+                ]
+                    .into();
                 let res = inv * tmp;
 
                 //println!("Hopefully mouse pos in world: {:?}",res);
@@ -1183,7 +1186,9 @@ impl<'a, I: PartialEq + Clone + Send + Sync + 'static> PrefabData<'a> for Remova
         system_data: &mut Self::SystemData,
         _entities: &[Entity],
     ) -> std::result::Result<(), PrefabError> {
-        system_data.0.insert(entity, Removal::new(self.id.clone()))?;
+        system_data
+            .0
+            .insert(entity, Removal::new(self.id.clone()))?;
         Ok(())
     }
 }
@@ -1201,7 +1206,6 @@ pub fn exec_removal<I: Send + Sync + PartialEq + 'static>(
         }
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, new, Component)]
 pub struct FpsMovement {
@@ -1249,8 +1253,6 @@ where
         }
     }
 }
-
-
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, Component)]
 pub struct RotationControl {
@@ -1341,7 +1343,6 @@ where
     }
 }
 
-
 #[derive(Debug, Clone, Default, Serialize, Deserialize, new, Component)]
 pub struct Grounded {
     #[new(value = "false")]
@@ -1357,7 +1358,7 @@ pub struct GroundCheckerSystem<T> {
     pub collider_types: Vec<T>,
 }
 
-impl<'a, T: Component+PartialEq> System<'a> for GroundCheckerSystem<T> {
+impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
     type SystemData = (
         Entities<'a>,
         ReadStorage<'a, Transform>,
@@ -1401,9 +1402,6 @@ impl<'a, T: Component+PartialEq> System<'a> for GroundCheckerSystem<T> {
         }
     }
 }
-
-
-
 
 #[derive(Default, Component, new)]
 pub struct Jump {
@@ -1515,8 +1513,6 @@ impl<'a> System<'a> for JumpSystem {
     }
 }
 
-
-
 /// The settings controlling how the entity controlled by the `BhopMovementSystem` will behave.
 /// This is a component that you should add on the entity.
 #[derive(Serialize, Deserialize, Debug, Clone, Component, new)]
@@ -1541,7 +1537,6 @@ pub struct BhopMovement3D {
     /// Enables accelerating over maximumVelocity by airstrafing. Bunnyhop in a nutshell.
     pub allow_projection_acceleration: bool,
 }
-
 
 /// The system that manages the first person movements (with added projection acceleration capabilities).
 /// Generic parameters are the parameters for the InputHandler.
@@ -1625,8 +1620,6 @@ where
     }
 }
 
-
-
 /// The way friction is applied.
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 pub enum FrictionMode {
@@ -1702,9 +1695,6 @@ impl<'a> System<'a> for GroundFrictionSystem {
     }
 }
 
-
-
-
 /// Accelerates the given `relative` vector by the given `acceleration` and `input`.
 /// The `maximum_velocity` is only taken into account for the projection of the acceleration vector on the `relative` vector.
 /// This allows going over the speed limit by performing what is called a "strafe".
@@ -1762,9 +1752,6 @@ pub fn limit_velocity(vec: Vector3<f32>, maximum_velocity: f32) -> Vector3<f32> 
     }
     vec
 }
-
-
-
 
 /*pub struct NavigationButton{
     pub target: fn() -> Trans,
