@@ -4,7 +4,7 @@ version = "0.3.0"
 authors = ["jojolepro <jojolepromain@gmail.com>"]
 
 [dependencies]
-amethyst = { version = "0.8", features = ["nightly"] }
+amethyst = { git = "https://github.com/amethyst/amethyst", features = ["nightly"] }
 partial_function = "0.4.0"
 serde = { version = "1.0", features = ["serde_derive"] }
 serde_derive = "1.0"
@@ -20,5 +20,5 @@ derive-new = "0.5"
 specs-derive = { git = "https://github.com/jojolepro/specs", branch = "derive" }
 amethyst-rhusics = { git = "https://github.com/amethyst/amethyst-rhusics" }
 
-[patch.crates-io]
-amethyst = { git = "https://github.com/jojolepro/amethyst", branch = "hoppinworld" }
+#[patch.crates-io]
+#amethyst = { git = "https://github.com/jojolepro/amethyst", branch = "hoppinworld" }
