@@ -1493,7 +1493,7 @@ impl<'a> System<'a> for JumpSystem {
                         1.0
                     };
 
-                    if jump.absolute {
+                    if !jump.absolute {
                         force.add_force(Vector3::<f32>::unit_y() * jump.jump_force * multiplier);
                     } else {
                         let (x, z) = {
