@@ -17,7 +17,7 @@ crossterm = { git = "https://github.com/TimonPost/crossterm/", branch = "develop
 rand = "0.5.5"
 lazy_static = "1.1.0"
 derive-new = "0.5"
-specs-derive = { git = "https://github.com/jojolepro/specs", branch = "derive" }
+specs-derive = { git = "https://github.com/slide-rs/specs" }
 amethyst-rhusics = { git = "https://github.com/amethyst/amethyst-rhusics" }
 
 #[patch.crates-io]
