@@ -1435,7 +1435,7 @@ pub struct JumpSystem {
 impl<'a> System<'a> for JumpSystem {
     type SystemData = (
         Entities<'a>,
-        ReadStorage<'a, Grounded>,
+        WriteStorage<'a, Grounded>,
         WriteStorage<'a, Jump>,
         Read<'a, Time>,
         Read<'a, InputHandler<String, String>>,
@@ -1445,7 +1445,7 @@ impl<'a> System<'a> for JumpSystem {
 
     fn run(
         &mut self,
-        (entities, grounded, mut jumps, time, input, mut forces, mut velocities): Self::SystemData,
+        (entities, mut grounded, mut jumps, time, input, mut forces, mut velocities): Self::SystemData,
     ) {
         if let Some(true) = input.action_is_down("jump") {
             if !self.input_hold {
@@ -1504,6 +1504,9 @@ impl<'a> System<'a> for JumpSystem {
                             .value
                             .set_linear(Vector3::new(x, jump.jump_force, z));
                     }
+                }
+                if let Some(ref mut ground) = grounded.get_mut(entity) {
+                    ground.ground = false;
                 }
             }
         } else {
