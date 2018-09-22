@@ -1409,7 +1409,7 @@ pub struct Jump {
     pub check_ground: bool,
     pub jump_force: f32,
     pub auto_jump: bool,
-    #[new(value = "0.1")]
+    #[new(value = "0.3333")]
     pub jump_cooldown: f64,
     #[new(value = "0.1")]
     pub input_cooldown: f64,
