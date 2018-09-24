@@ -17,7 +17,6 @@ extern crate derive_new;
 extern crate specs_derive;
 extern crate amethyst_rhusics;
 
-use amethyst_rhusics::rhusics_core::ContactEvent;
 use amethyst::controls::FlyControlTag;
 use amethyst::controls::HideCursor;
 use amethyst::controls::WindowFocus;
@@ -42,6 +41,7 @@ use amethyst::shrev::EventChannel;
 use amethyst_rhusics::collision::dbvt::query_ray;
 use amethyst_rhusics::collision::{Aabb3, Ray3};
 use amethyst_rhusics::rhusics_core::physics3d::Velocity3;
+use amethyst_rhusics::rhusics_core::ContactEvent;
 use amethyst_rhusics::rhusics_core::ForceAccumulator;
 use amethyst_rhusics::rhusics_core::NextFrame;
 use amethyst_rhusics::rhusics_core::Pose;
@@ -927,7 +927,6 @@ impl<R> LootTree<R> {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, new, Component)]
 pub struct FpsMovement {
     /// The movement speed in units per second.
@@ -1097,7 +1096,10 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSimpleRaySystem<T
 
     fn setup(&mut self, mut res: &mut Resources) {
         Self::SystemData::setup(&mut res);
-        self.contact_reader = Some(res.fetch_mut::<EventChannel<ContactEvent<Entity, Point3<f32>>>>().register_reader());
+        self.contact_reader = Some(
+            res.fetch_mut::<EventChannel<ContactEvent<Entity, Point3<f32>>>>()
+                .register_reader(),
+        );
     }
 
     fn run(
@@ -1109,7 +1111,6 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSimpleRaySystem<T
             let mut ground = false;
 
             let ray = Ray3::new(Point3::from_vec(transform.translation), down);
-
 
             // For all in ray
             for (v, p) in query_ray(&*tree, ray) {
@@ -1143,7 +1144,9 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSimpleRaySystem<T
                 }
 
                 // If we can jump off that type of collider
-                if self.collider_types.contains(type1.unwrap()) || self.collider_types.contains(type2.unwrap()) {
+                if self.collider_types.contains(type1.unwrap())
+                    || self.collider_types.contains(type2.unwrap())
+                {
                     ground = true;
                 }
             }
@@ -1200,7 +1203,7 @@ impl<'a> System<'a> for JumpSystem {
     fn run(
         &mut self,
         (entities, mut grounded, mut jumps, time, input, mut forces, mut velocities): Self::SystemData,
-    ) {
+){
         if let Some(true) = input.action_is_down("jump") {
             if !self.input_hold {
                 // We just started pressing the key. Registering time.
