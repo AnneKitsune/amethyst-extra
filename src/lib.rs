@@ -1077,13 +1077,13 @@ pub struct Grounded {
 
 /// T: ObjectType for collider checks
 #[derive(new)]
-pub struct GroundCheckerSimpleRaySystem<T> {
+pub struct GroundCheckerSystem<T> {
     pub collider_types: Vec<T>,
     #[new(default)]
     contact_reader: Option<ReaderId<ContactEvent<Entity, Point3<f32>>>>,
 }
 
-impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSimpleRaySystem<T> {
+impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
     type SystemData = (
         Entities<'a>,
         ReadStorage<'a, Transform>,
