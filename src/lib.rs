@@ -1131,23 +1131,32 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSimpleRaySystem<T
 
             // Check for secondary collider if any
             for contact in contacts.read(&mut self.contact_reader.as_mut().unwrap()) {
-                if contact.bodies.0 == entity || contact.bodies.1 == entity {
-                    // We hit our player... let's ignore that.
-                    continue;
-                }
+                // Here because we need to empty the contacts EventChannel
+                if let Some(secondary) = grounded.watch_entity {
 
-                let type1 = objecttypes.get(contact.bodies.0);
-                let type2 = objecttypes.get(contact.bodies.1);
+                    if contact.bodies.0 == entity || contact.bodies.1 == entity {
+                        // We hit our player... let's ignore that.
+                        continue;
+                    }
 
-                if type1.is_none() || type2.is_none() {
-                    continue;
-                }
+                    if contact.bodies.0 != secondary && contact.bodies.1 != secondary {
+                        // This has nothing to do with the secondary collider. Skip!
+                        continue;
+                    }
 
-                // If we can jump off that type of collider
-                if self.collider_types.contains(type1.unwrap())
-                    || self.collider_types.contains(type2.unwrap())
-                {
-                    ground = true;
+                    let type1 = objecttypes.get(contact.bodies.0);
+                    let type2 = objecttypes.get(contact.bodies.1);
+
+                    if type1.is_none() || type2.is_none() {
+                        continue;
+                    }
+
+                    // If we can jump off that type of collider
+                    if self.collider_types.contains(type1.unwrap())
+                        || self.collider_types.contains(type2.unwrap())
+                    {
+                        ground = true;
+                    }
                 }
             }
 
