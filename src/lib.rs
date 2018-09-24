@@ -17,6 +17,7 @@ extern crate derive_new;
 extern crate specs_derive;
 extern crate amethyst_rhusics;
 
+use amethyst_rhusics::rhusics_core::ContactEvent;
 use amethyst::controls::FlyControlTag;
 use amethyst::controls::HideCursor;
 use amethyst::controls::WindowFocus;
@@ -351,124 +352,6 @@ mod test {
         AssetLoader::new(
             &format!("{}/test/assets/", env!("CARGO_MANIFEST_DIR")),
             "/base/",
-        );
-    }
-
-    #[test]
-    fn normal_camera_large_lossy_horizontal() {
-        let aspect = 2.0 / 1.0;
-        let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Lossy {
-                stretch_direction: Axis2::X,
-            },
-        };
-        assert_eq!((-0.5, 1.5, 0.0, 1.0), cam.camera_offsets(aspect));
-    }
-
-    #[test]
-    fn normal_camera_large_lossy_vertical() {
-        let aspect = 2.0 / 1.0;
-        let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Lossy {
-                stretch_direction: Axis2::Y,
-            },
-        };
-        assert_eq!((0.0, 1.0, 0.25, 0.75), cam.camera_offsets(aspect));
-    }
-
-    #[test]
-    fn normal_camera_high_lossy_horizontal() {
-        let aspect = 1.0 / 2.0;
-        let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Lossy {
-                stretch_direction: Axis2::X,
-            },
-        };
-        assert_eq!((0.25, 0.75, 0.0, 1.0), cam.camera_offsets(aspect));
-    }
-
-    #[test]
-    fn normal_camera_high_lossy_vertical() {
-        let aspect = 1.0 / 2.0;
-        let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Lossy {
-                stretch_direction: Axis2::Y,
-            },
-        };
-        assert_eq!((0.0, 1.0, -0.5, 1.5), cam.camera_offsets(aspect));
-    }
-
-    #[test]
-    fn normal_camera_square_lossy_horizontal() {
-        let aspect = 1.0 / 1.0;
-        let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Lossy {
-                stretch_direction: Axis2::X,
-            },
-        };
-        assert_eq!((0.0, 1.0, 0.0, 1.0), cam.camera_offsets(aspect));
-    }
-
-    #[test]
-    fn normal_camera_square_lossy_vertical() {
-        let aspect = 1.0 / 1.0;
-        let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Lossy {
-                stretch_direction: Axis2::Y,
-            },
-        };
-        assert_eq!((0.0, 1.0, 0.0, 1.0), cam.camera_offsets(aspect));
-    }
-
-    #[test]
-    fn normal_camera_large_shrink() {
-        let aspect = 2.0 / 1.0;
-        let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Shrink,
-        };
-        assert_eq!((-0.5, 1.5, 0.0, 1.0), cam.camera_offsets(aspect));
-    }
-
-    #[test]
-    fn normal_camera_high_shrink() {
-        let aspect = 1.0 / 2.0;
-        let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Shrink,
-        };
-        assert_eq!((0.0, 1.0, -0.5, 1.5), cam.camera_offsets(aspect));
-    }
-
-    #[test]
-    fn normal_camera_square_shrink() {
-        let aspect = 1.0 / 1.0;
-        let cam = NormalOrthoCamera {
-            mode: CameraNormalizeMode::Shrink,
-        };
-        assert_eq!((0.0, 1.0, 0.0, 1.0), cam.camera_offsets(aspect));
-    }
-
-    #[test]
-    fn asset_loader_resolve_unique_main() {
-        let asset_loader = load_asset_loader();
-        #[cfg(windows)]
-        assert_eq!(
-            asset_loader.resolve_path("config/unique"),
-            Some(
-                format!(
-                    "{}\\test\\assets\\main\\config\\unique",
-                    env!("CARGO_MANIFEST_DIR")
-                ).to_string()
-            )
-        );
-        #[cfg(not(windows))]
-        assert_eq!(
-            asset_loader.resolve_path("config/unique"),
-            Some(
-                format!(
-                    "{}/test/assets/main/config/unique",
-                    env!("CARGO_MANIFEST_DIR")
-                ).to_string()
-            )
         );
     }
 
@@ -880,119 +763,6 @@ impl<'a> System<'a> for TimedDestroySystem {
     }
 }
 
-#[derive(Default)]
-pub struct NormalOrthoCamera {
-    pub mode: CameraNormalizeMode,
-}
-
-impl NormalOrthoCamera {
-    pub fn camera_offsets(&self, ratio: f32) -> (f32, f32, f32, f32) {
-        self.mode.camera_offsets(ratio)
-    }
-}
-
-impl Component for NormalOrthoCamera {
-    type Storage = DenseVecStorage<Self>;
-}
-
-pub enum CameraNormalizeMode {
-    /// Using an aspect ratio of 1:1, tries to ajust the matrix values of the camera so
-    /// that the direction opposite to the stretch_direction is always [0,1].
-    /// Scene space can be lost on the specified stretch_direction.
-    Lossy { stretch_direction: Axis2 },
-
-    /// Scales the render dynamically to ensure no space is lost in the [0,1] range on any axis.
-    Shrink,
-}
-
-impl CameraNormalizeMode {
-    pub fn camera_offsets(&self, aspect_ratio: f32) -> (f32, f32, f32, f32) {
-        match self {
-            &CameraNormalizeMode::Lossy {
-                ref stretch_direction,
-            } => match stretch_direction {
-                Axis2::X => CameraNormalizeMode::lossy_x(aspect_ratio),
-                Axis2::Y => CameraNormalizeMode::lossy_y(aspect_ratio),
-            },
-            &CameraNormalizeMode::Shrink => {
-                if aspect_ratio > 1.0 {
-                    CameraNormalizeMode::lossy_x(aspect_ratio)
-                } else if aspect_ratio < 1.0 {
-                    CameraNormalizeMode::lossy_y(aspect_ratio)
-                } else {
-                    (0.0, 1.0, 0.0, 1.0)
-                }
-            }
-        }
-    }
-
-    fn lossy_x(aspect_ratio: f32) -> (f32, f32, f32, f32) {
-        let offset = (aspect_ratio - 1.0) / 2.0;
-        (-offset, 1.0 + offset, 0.0, 1.0)
-    }
-
-    fn lossy_y(aspect_ratio: f32) -> (f32, f32, f32, f32) {
-        let offset = (1.0 / aspect_ratio - 1.0) / 2.0;
-        (0.0, 1.0, -offset, 1.0 + offset)
-    }
-}
-
-impl Default for CameraNormalizeMode {
-    fn default() -> Self {
-        CameraNormalizeMode::Shrink
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Axis2 {
-    // The X axis. Often the horizontal (left-right) position.
-    X,
-    // The Y axis. Often the vertical height.
-    Y,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Axis3 {
-    // The X axis. Often the horizontal (left-right) position.
-    X,
-    // The Y axis. Often the vertical height.
-    Y,
-    // The Z axis. Often the depth.
-    Z,
-}
-
-#[derive(Default)]
-pub struct NormalOrthoCameraSystem {
-    aspect_ratio_cache: f32,
-}
-
-impl<'a> System<'a> for NormalOrthoCameraSystem {
-    type SystemData = (
-        ReadExpect<'a, ScreenDimensions>,
-        WriteStorage<'a, Camera>,
-        ReadStorage<'a, NormalOrthoCamera>,
-    );
-    fn run(&mut self, (dimensions, mut cameras, ortho_cameras): Self::SystemData) {
-        let aspect = dimensions.aspect_ratio();
-        if aspect != self.aspect_ratio_cache {
-            self.aspect_ratio_cache = aspect;
-
-            for (mut camera, ortho_camera) in (&mut cameras, &ortho_cameras).join() {
-                //println!("CHANGING CAM RATIO! {:?}",Ortho{left: -x_offset,right: 1.0 + x_offset,bottom: 0.0,top: 1.0,near: 0.1,far: 2000.0});
-                let offsets = ortho_camera.camera_offsets(aspect);
-                camera.proj = Ortho {
-                    left: offsets.0,
-                    right: offsets.1,
-                    bottom: offsets.2,
-                    top: offsets.3,
-                    near: 0.1,
-                    far: 1000.0,
-                }.into();
-            }
-        }
-    }
-}
-
 pub struct UiTimer {
     pub start: f64,
 }
@@ -1157,55 +927,6 @@ impl<R> LootTree<R> {
     }
 }
 
-pub struct Removal<I> {
-    id: I,
-}
-
-impl<I> Removal<I> {
-    pub fn new(id: I) -> Self {
-        Removal { id }
-    }
-}
-
-impl<I: Send + Sync + 'static> Component for Removal<I> {
-    type Storage = DenseVecStorage<Self>;
-}
-
-#[derive(Default, Clone, Deserialize, Serialize)]
-pub struct RemovalPrefab<I> {
-    id: I,
-}
-
-impl<'a, I: PartialEq + Clone + Send + Sync + 'static> PrefabData<'a> for RemovalPrefab<I> {
-    type SystemData = (WriteStorage<'a, Removal<I>>,);
-    type Result = ();
-
-    fn load_prefab(
-        &self,
-        entity: Entity,
-        system_data: &mut Self::SystemData,
-        _entities: &[Entity],
-    ) -> std::result::Result<(), PrefabError> {
-        system_data
-            .0
-            .insert(entity, Removal::new(self.id.clone()))?;
-        Ok(())
-    }
-}
-
-pub fn exec_removal<I: Send + Sync + PartialEq + 'static>(
-    entities: &EntitiesRes,
-    removal_storage: &ReadStorage<Removal<I>>,
-    removal_id: I,
-) {
-    for (e, r) in (&*entities, removal_storage).join() {
-        if r.id == removal_id {
-            if let Err(err) = entities.delete(e) {
-                error!("Failed to delete entity during exec_removal: {:?}", err);
-            }
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, new, Component)]
 pub struct FpsMovement {
@@ -1350,15 +1071,20 @@ pub struct Grounded {
     #[new(default)]
     pub since: f64,
     pub distance_check: f32,
+    /// Checks if the selected entity collides with the ground.
+    #[serde(skip)]
+    pub watch_entity: Option<Entity>,
 }
 
 /// T: ObjectType for collider checks
 #[derive(new)]
-pub struct GroundCheckerSystem<T> {
+pub struct GroundCheckerSimpleRaySystem<T> {
     pub collider_types: Vec<T>,
+    #[new(default)]
+    contact_reader: Option<ReaderId<ContactEvent<Entity, Point3<f32>>>>,
 }
 
-impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
+impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSimpleRaySystem<T> {
     type SystemData = (
         Entities<'a>,
         ReadStorage<'a, Transform>,
@@ -1366,17 +1092,25 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
         ReadStorage<'a, T>,
         Read<'a, DynamicBoundingVolumeTree3<f32>>,
         Read<'a, Time>,
+        Read<'a, EventChannel<ContactEvent<Entity, Point3<f32>>>>,
     );
+
+    fn setup(&mut self, mut res: &mut Resources) {
+        Self::SystemData::setup(&mut res);
+        self.contact_reader = Some(res.fetch_mut::<EventChannel<ContactEvent<Entity, Point3<f32>>>>().register_reader());
+    }
 
     fn run(
         &mut self,
-        (entities, transforms, mut grounded, objecttypes, tree, time): Self::SystemData,
+        (entities, transforms, mut grounded, objecttypes, tree, time, contacts): Self::SystemData,
     ) {
         let down = -Vector3::unit_y();
         for (entity, transform, mut grounded) in (&*entities, &transforms, &mut grounded).join() {
             let mut ground = false;
 
             let ray = Ray3::new(Point3::from_vec(transform.translation), down);
+
+
             // For all in ray
             for (v, p) in query_ray(&*tree, ray) {
                 // Not self and close enough
@@ -1391,6 +1125,26 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
                         }
                     }
                     //info!("hit bounding volume of {:?} at point {:?}", v.value, p);
+                }
+            }
+
+            // Check for secondary collider if any
+            for contact in contacts.read(&mut self.contact_reader.as_mut().unwrap()) {
+                if contact.bodies.0 == entity || contact.bodies.1 == entity {
+                    // We hit our player... let's ignore that.
+                    continue;
+                }
+
+                let type1 = objecttypes.get(contact.bodies.0);
+                let type2 = objecttypes.get(contact.bodies.1);
+
+                if type1.is_none() || type2.is_none() {
+                    continue;
+                }
+
+                // If we can jump off that type of collider
+                if self.collider_types.contains(type1.unwrap()) || self.collider_types.contains(type2.unwrap()) {
+                    ground = true;
                 }
             }
 
