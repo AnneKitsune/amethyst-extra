@@ -1096,10 +1096,10 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
 
     fn setup(&mut self, mut res: &mut Resources) {
         Self::SystemData::setup(&mut res);
-        self.contact_reader = Some(
+        /*self.contact_reader = Some(
             res.fetch_mut::<EventChannel<ContactEvent<Entity, Point3<f32>>>>()
                 .register_reader(),
-        );
+        );*/
     }
 
     fn run(
@@ -1129,28 +1129,30 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
                 }
             }
 
+            /*info!("run {:?}", entity);
             // Check for secondary collider if any
             for contact in contacts.read(&mut self.contact_reader.as_mut().unwrap()) {
+                info!("Contact {:?} -> {:?}",contact.bodies.0, contact.bodies.1);
                 // Here because we need to empty the contacts EventChannel
                 if let Some(secondary) = grounded.watch_entity {
-
+                    info!("Secondary");
                     if contact.bodies.0 == entity || contact.bodies.1 == entity {
                         // We hit our player... let's ignore that.
                         continue;
                     }
-
+                    info!("tmp1");
                     if contact.bodies.0 != secondary && contact.bodies.1 != secondary {
                         // This has nothing to do with the secondary collider. Skip!
                         continue;
                     }
-
+                    info!("type check");
                     let type1 = objecttypes.get(contact.bodies.0);
                     let type2 = objecttypes.get(contact.bodies.1);
 
                     if type1.is_none() || type2.is_none() {
                         continue;
                     }
-
+                    info!("good to go");
                     // If we can jump off that type of collider
                     if self.collider_types.contains(type1.unwrap())
                         || self.collider_types.contains(type2.unwrap())
@@ -1158,7 +1160,7 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
                         ground = true;
                     }
                 }
-            }
+            }*/
 
             if ground && !grounded.ground {
                 // Just grounded
