@@ -16,6 +16,7 @@ extern crate derive_new;
 #[macro_use]
 extern crate specs_derive;
 extern crate amethyst_rhusics;
+extern crate discord_rpc_client;
 
 use amethyst::controls::FlyControlTag;
 use amethyst::controls::HideCursor;
@@ -39,7 +40,7 @@ use amethyst::renderer::Texture;
 use amethyst::renderer::TextureMetadata;
 use amethyst::shrev::EventChannel;
 use amethyst_rhusics::collision::dbvt::query_ray;
-use amethyst_rhusics::collision::{Aabb3, Ray3};
+use amethyst_rhusics::collision::Ray3;
 use amethyst_rhusics::rhusics_core::physics3d::Velocity3;
 use amethyst_rhusics::rhusics_core::ContactEvent;
 use amethyst_rhusics::rhusics_core::ForceAccumulator;
@@ -52,20 +53,17 @@ use rand::{thread_rng, Rng};
 use amethyst::animation::AnimationBundle;
 use amethyst::assets::*;
 use amethyst::audio::{AudioBundle, SourceHandle};
-use amethyst::core::cgmath::Ortho;
 use amethyst::core::cgmath::{SquareMatrix, Vector4};
 use amethyst::core::timing::Time;
 use amethyst::core::*;
-use amethyst::ecs::storage::NullStorage;
-use amethyst::ecs::world::EntitiesRes;
 use amethyst::ecs::*;
 use amethyst::input::get_input_axis_simple;
 use amethyst::input::*;
 use amethyst::prelude::*;
 use amethyst::ui::{UiBundle, UiText};
 use amethyst::Result;
+use discord_rpc_client::Client as DiscordClient;
 use dirty::Dirty;
-use partial_function::*;
 use partial_function::*;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -86,8 +84,7 @@ use std::vec::IntoIter;
 
 use crossterm::cursor::TerminalCursor;
 //use crossterm::screen::RawScreen;
-use crossterm::style::Color;
-use crossterm::terminal::{terminal, ClearType, Terminal};
+use crossterm::terminal::{ClearType, Terminal};
 use crossterm::{Crossterm, Screen};
 
 lazy_static! {
@@ -355,7 +352,7 @@ mod test {
         );
     }
 
-    /*#[test]
+    #[test]
     fn asset_loader_resolve_unique_other() {
         let asset_loader = load_asset_loader();
         assert_eq!(asset_loader.resolve_path("config/uniqueother"),Some(format!("{}/test/assets/mod1/config/uniqueother",env!("CARGO_MANIFEST_DIR")).to_string()))
@@ -371,7 +368,7 @@ mod test {
     fn asset_loader_resolve_path_override_all() {
         let asset_loader = load_asset_loader();
         assert_eq!(asset_loader.resolve_path("config/ovall"),Some(format!("{}/test/assets/mod2/config/ovall",env!("CARGO_MANIFEST_DIR")).to_string()))
-    }*/
+    }
 
     #[test]
     pub fn crossterm() {
@@ -381,8 +378,8 @@ mod test {
 
         let mut input = CROSSTERM.input().read_async().bytes();
 
-        let mut input_buf = Arc::new(Mutex::new(String::new()));
-        let mut key_buf = [0 as u8; 32];
+        let input_buf = Arc::new(Mutex::new(String::new()));
+        let key_buf = [0 as u8; 32];
 
         start_logger(input_buf.clone());
 
@@ -392,7 +389,7 @@ mod test {
         });
 
         loop {
-            let (_, term_height) = terminal.terminal_size();
+            let (_, _) = terminal.terminal_size();
             info!("random stuff");
             while let Some(Ok(b)) = input.next() {
                 info!("{:?} <- Char entered!", b);
@@ -1531,6 +1528,74 @@ pub fn limit_velocity(vec: Vector3<f32>, maximum_velocity: f32) -> Vector3<f32> 
 impl Component for NavigationButton{
     type Storage = VecStorage<Self>;
 }*/
+
+
+/// Discord Rich Presence wrapper around discord_rpc_client
+/// Currently errors are not exposed by the library, so I use the log crate
+/// to display errors and only return Result<T, ()> from the methods.
+/// 
+/// Make sure to properly create your app here: https://discordapp.com/developers/applications
+/// 
+/// Usage: 
+/// ```rs
+/// fn init_discord_rich_presence() -> Result<DiscordRichPresence,()> {
+///     let drp = DiscordRichPresence::new(498979571933380609);
+///     if let Ok(drp) = drp {
+///         if let Err(e) = drp.rpc.lock().unwrap().set_activity(|a| a
+///             .state("Main Menu")
+///             .assets(|ass| ass
+///                 .large_image("large_image")
+///                 .large_text("Hoppin World")
+///                 .small_image("small_image")
+///                 .small_text("hi")
+///             ))
+///         {
+///             error!("Failed to set discord rich presence initial state: {}", e);
+///             return Err(());
+///         }
+///         return Ok(drp);
+///     }
+///     return Err(());
+/// }
+/// ```
+pub struct DiscordRichPresence {
+    pub rpc: Arc<Mutex<DiscordClient>>,
+}
+
+impl DiscordRichPresence {
+    pub fn new(app_id: u64) -> std::result::Result<Self,()> {
+        let mut rpc = DiscordClient::new(app_id);
+        if let Err(e) = rpc {
+            error!("Failed to create discord rich presence client: {:?}", e);
+            return Err(());
+        }
+        rpc.as_mut().unwrap().start();
+        Ok(DiscordRichPresence {
+            rpc: Arc::new(Mutex::new(rpc.unwrap())),
+        })
+    }
+    pub fn set_state(&mut self, state: String) {
+        if let Err(e) = self.rpc.lock().unwrap().set_activity(|a| a.state(state)){
+            error!("Failed to set discord rich presence state: {}", e);
+        }
+    }
+}
+
+impl Drop for DiscordRichPresence {
+    fn drop(&mut self) {
+        if let Err(e) = self.rpc.lock().unwrap().clear_activity() {
+            eprintln!("Failed to clear discord rich presence activity {:?}", e);
+        }
+    }
+}
+
+/// Changes the discord rich presence state, if present in the world.
+pub fn set_discord_state(state: String, world: &mut World) {
+    if let Some(mut drp) = world.res.try_fetch_mut::<DiscordRichPresence>() {
+        drp.set_state(state);
+    }
+}
+
 
 /*
   * = could do it in the engine directly
