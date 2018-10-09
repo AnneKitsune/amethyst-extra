@@ -1583,12 +1583,22 @@ impl DiscordRichPresence {
     pub fn update(&mut self) {
         if let Err(e) = self.rpc.lock().unwrap().set_activity(|a| 
             a.state(self.state.clone())
-            .assets(|ass| ass
-                .large_image(self.large_image.clone().unwrap_or("".to_string()))
-                .large_text(self.large_image_text.clone().unwrap_or("".to_string()))
-                .small_image(self.small_image.clone().unwrap_or("".to_string()))
-                .small_text(self.small_image_text.clone().unwrap_or("".to_string()))
-            )
+            .assets(|ass| {
+                let mut tmp = ass;
+                if let Some(ref t) = self.large_image {
+                    tmp = tmp.large_image(t.clone());
+                }
+                if let Some(ref t) = self.large_image_text {
+                    tmp = tmp.large_text(t.clone());
+                }
+                if let Some(ref t) = self.small_image {
+                    tmp = tmp.small_image(t.clone());
+                }
+                if let Some(ref t) = self.small_image_text {
+                    tmp = tmp.small_text(t.clone());
+                }
+                tmp
+            })
         ){
             error!("Failed to set discord rich presence state: {}", e);
         }
