@@ -1539,43 +1539,57 @@ impl Component for NavigationButton{
 /// Usage: 
 /// ```rs
 /// fn init_discord_rich_presence() -> Result<DiscordRichPresence,()> {
-///     let drp = DiscordRichPresence::new(498979571933380609);
-///     if let Ok(drp) = drp {
-///         if let Err(e) = drp.rpc.lock().unwrap().set_activity(|a| a
-///             .state("Main Menu")
-///             .assets(|ass| ass
-///                 .large_image("large_image")
-///                 .large_text("Hoppin World")
-///                 .small_image("small_image")
-///                 .small_text("hi")
-///             ))
-///         {
-///             error!("Failed to set discord rich presence initial state: {}", e);
-///             return Err(());
-///         }
-///         return Ok(drp);
-///     }
-///     return Err(());
+///     DiscordRichPresence::new(498979571933380609, "Main Menu", Some("large_image"), Some("Hoppin World"), None, None);
 /// }
 /// ```
 pub struct DiscordRichPresence {
     pub rpc: Arc<Mutex<DiscordClient>>,
+    state: String,
+    large_image: Option<String>,
+    large_image_text: Option<String>,
+    small_image: Option<String>,
+    small_image_text: Option<String>,
 }
 
 impl DiscordRichPresence {
-    pub fn new(app_id: u64) -> std::result::Result<Self,()> {
+    pub fn new(app_id: u64,
+        state: String,
+        large_image: Option<String>,
+        large_image_text: Option<String>,
+        small_image: Option<String>,
+        small_image_text: Option<String>) -> std::result::Result<Self,()> {
         let mut rpc = DiscordClient::new(app_id);
         if let Err(e) = rpc {
             error!("Failed to create discord rich presence client: {:?}", e);
             return Err(());
         }
         rpc.as_mut().unwrap().start();
-        Ok(DiscordRichPresence {
+        let mut drp = DiscordRichPresence {
             rpc: Arc::new(Mutex::new(rpc.unwrap())),
-        })
+            state,
+            large_image,
+            large_image_text,
+            small_image,
+            small_image_text,
+        };
+        drp.update();
+        Ok(drp)
     }
     pub fn set_state(&mut self, state: String) {
-        if let Err(e) = self.rpc.lock().unwrap().set_activity(|a| a.state(state)){
+        self.state = state;
+        self.update();
+    }
+
+    pub fn update(&mut self) {
+        if let Err(e) = self.rpc.lock().unwrap().set_activity(|a| 
+            a.state(self.state.clone())
+            .assets(|ass| ass
+                .large_image(self.large_image.clone().unwrap_or("".to_string()))
+                .large_text(self.large_image_text.clone().unwrap_or("".to_string()))
+                .small_image(self.small_image.clone().unwrap_or("".to_string()))
+                .small_text(self.small_image_text.clone().unwrap_or("".to_string()))
+            )
+        ){
             error!("Failed to set discord rich presence state: {}", e);
         }
     }
