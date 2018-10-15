@@ -584,7 +584,7 @@ pub fn material_from_png(
     material_defaults: &MaterialDefaults,
 ) -> Material {
     material_from_texture(
-        loader.load(path, PngFormat, TextureMetadata::default(), (), &storage),
+        loader.load(path, PngFormat, TextureMetadata::srgb(), (), &storage),
         material_defaults,
     )
 }
