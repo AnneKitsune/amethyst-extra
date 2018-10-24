@@ -14,7 +14,7 @@ extern crate lazy_static;
 #[macro_use]
 extern crate derive_new;
 #[macro_use]
-extern crate specs_derive;
+//extern crate specs_derive;
 extern crate amethyst_rhusics;
 extern crate discord_rpc_client;
 
@@ -924,10 +924,14 @@ impl<R> LootTree<R> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, new, Component)]
+#[derive(Debug, Clone, Serialize, Deserialize, new)]
 pub struct FpsMovement {
     /// The movement speed in units per second.
     pub speed: f32,
+}
+
+impl Component for FpsMovement {
+    type Storage = DenseVecStorage<Self>;
 }
 
 /// The system that manages the fly movement.
@@ -971,10 +975,14 @@ where
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, Component)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RotationControl {
     pub mouse_accum_x: f32,
     pub mouse_accum_y: f32,
+}
+
+impl Component for RotationControl {
+    type Storage = DenseVecStorage<Self>;
 }
 
 /// The system that manages the view rotation.
@@ -1060,7 +1068,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, new, Component)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, new,)]
 pub struct Grounded {
     #[new(value = "false")]
     pub ground: bool,
@@ -1071,6 +1079,11 @@ pub struct Grounded {
     #[serde(skip)]
     pub watch_entity: Option<Entity>,
 }
+
+impl Component for Grounded {
+    type Storage = DenseVecStorage<Self>;
+}
+
 
 /// T: ObjectType for collider checks
 #[derive(new)]
@@ -1168,7 +1181,7 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
     }
 }
 
-#[derive(Default, Component, new)]
+#[derive(Default, new)]
 pub struct Jump {
     pub absolute: bool,
     pub check_ground: bool,
@@ -1186,6 +1199,11 @@ pub struct Jump {
     #[new(default)]
     pub last_jump_offset: f64,
 }
+
+impl Component for Jump {
+    type Storage = DenseVecStorage<Self>;
+}
+
 
 #[derive(Default)]
 pub struct JumpSystem {
@@ -1283,7 +1301,7 @@ impl<'a> System<'a> for JumpSystem {
 
 /// The settings controlling how the entity controlled by the `BhopMovementSystem` will behave.
 /// This is a component that you should add on the entity.
-#[derive(Serialize, Deserialize, Debug, Clone, Component, new)]
+#[derive(Serialize, Deserialize, Debug, Clone, new)]
 pub struct BhopMovement3D {
     /// False = Forces, True = Velocity
     pub absolute: bool,
@@ -1305,6 +1323,11 @@ pub struct BhopMovement3D {
     /// Enables accelerating over maximumVelocity by airstrafing. Bunnyhop in a nutshell.
     pub allow_projection_acceleration: bool,
 }
+
+impl Component for BhopMovement3D {
+    type Storage = DenseVecStorage<Self>;
+}
+
 
 /// The system that manages the first person movements (with added projection acceleration capabilities).
 /// Generic parameters are the parameters for the InputHandler.
@@ -1401,7 +1424,7 @@ pub enum FrictionMode {
 
 /// Component you add to your entities to apply a ground friction.
 /// What the friction field does is dependent on the choosen `FrictionMode`.
-#[derive(Serialize, Deserialize, Clone, Debug, Component, new)]
+#[derive(Serialize, Deserialize, Clone, Debug, new)]
 pub struct GroundFriction3D {
     /// The amount of friction speed loss by second.
     pub friction: f32,
@@ -1410,6 +1433,11 @@ pub struct GroundFriction3D {
     /// The time to wait after touching the ground before applying the friction.
     pub ground_time_before_apply: f64,
 }
+
+impl Component for GroundFriction3D {
+    type Storage = DenseVecStorage<Self>;
+}
+
 
 /// Applies friction (slows the velocity down) according to the `GroundFriction3D` component of your entity.
 /// Your entity also needs to have a `Grounded` component (and the `GroundCheckerSystem` added to your dispatcher) to detect the ground.

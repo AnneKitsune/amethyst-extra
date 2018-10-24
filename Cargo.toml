@@ -1,10 +1,10 @@
 [package]
 name = "amethyst-extra"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["jojolepro <jojolepromain@gmail.com>"]
 
 [dependencies]
-amethyst = { git = "https://github.com/amethyst/amethyst", features = ["nightly"] }
+amethyst = "0.9"
 discord-rpc-client = "0.2.3"
 partial_function = "0.4.0"
 serde = { version = "1.0", features = ["serde_derive"] }
@@ -13,9 +13,12 @@ ron = "0.2"
 log = "0.4"
 dirty = "0.2"
 fern = { version = "0.5", features = ["colored"] }
-crossterm = { git = "https://github.com/TimonPost/crossterm/", branch = "development" }
+crossterm = "0.4.2"
 rand = "0.5.5"
 lazy_static = "1.1.0"
 derive-new = "0.5"
-specs-derive = { git = "https://github.com/slide-rs/specs" }
-amethyst-rhusics = { git = "https://github.com/amethyst/amethyst-rhusics" }
+#specs-derive = { git = "https://github.com/slide-rs/specs" }
+amethyst-rhusics = "0.3"
+
+#amethyst = { git = "https://github.com/amethyst/amethyst", features = ["nightly"] }
+#amethyst-rhusics = { git = "https://github.com/amethyst/amethyst-rhusics" }
