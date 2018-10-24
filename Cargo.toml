@@ -2,6 +2,8 @@
 name = "amethyst-extra"
 version = "0.4.0"
 authors = ["jojolepro <jojolepromain@gmail.com>"]
+description = "Various helpful components, structs, systems and resources for the Amethyst engine."
+categories = ["game-engines"]
 
 [dependencies]
 amethyst = "0.9"
