@@ -1285,7 +1285,7 @@ impl<'a> System<'a> for JumpSystem {
                         };
                         velocity
                             .value
-                            .set_linear(Vector3::new(x, jump.jump_force, z));
+                            .set_linear(Vector3::new(x, jump.jump_force * multiplier, z));
                     }
                 }
                 if let Some(ref mut ground) = grounded.get_mut(entity) {
