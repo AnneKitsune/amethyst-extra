@@ -1,13 +1,14 @@
 extern crate amethyst;
 #[macro_use]
 extern crate serde;
+extern crate serde_json;
 extern crate ron;
 #[macro_use]
 extern crate log;
 extern crate crossterm;
 extern crate dirty;
 extern crate fern;
-extern crate partial_function;
+pub extern crate partial_function;
 extern crate rand;
 #[macro_use]
 extern crate lazy_static;
@@ -15,45 +16,28 @@ extern crate lazy_static;
 extern crate derive_new;
 #[macro_use]
 //extern crate specs_derive;
-extern crate amethyst_rhusics;
+//extern crate amethyst_rhusics;
 extern crate discord_rpc_client;
+pub extern crate hyper;
+pub extern crate hyper_tls;
+extern crate tokio;
+extern crate tokio_executor;
 
+//pub extern crate nphysics3d as nphysics;
+//pub extern crate ncollide3d as ncollide;
+pub extern crate nphysics_ecs_dumb as nphysics_ecs;
+
+use amethyst::core::nalgebra::{Vector3, Point3, Vector2, Vector4, Isometry3, UnitQuaternion, Quaternion};
 use amethyst::controls::FlyControlTag;
 use amethyst::controls::HideCursor;
 use amethyst::controls::WindowFocus;
-use amethyst::core::cgmath::EuclideanSpace;
-use amethyst::core::cgmath::InnerSpace;
-use amethyst::core::cgmath::Vector2;
-use amethyst::core::cgmath::Vector3;
-use amethyst::core::cgmath::{Basis3, Deg, Point3, Quaternion, Rotation3};
-use amethyst::renderer::Camera;
-use amethyst::renderer::DeviceEvent;
-use amethyst::renderer::DrawFlat;
-use amethyst::renderer::Event;
-use amethyst::renderer::Material;
-use amethyst::renderer::MaterialDefaults;
-use amethyst::renderer::Mesh;
-use amethyst::renderer::PngFormat;
-use amethyst::renderer::PosTex;
-use amethyst::renderer::ScreenDimensions;
-use amethyst::renderer::Texture;
-use amethyst::renderer::TextureMetadata;
+use amethyst::renderer::{MeshData, TextureMetadata, Texture, ScreenDimensions, PosTex, PngFormat, Mesh, MaterialDefaults, Material, Event, DrawFlat, DeviceEvent, Camera};
 use amethyst::shrev::EventChannel;
-use amethyst_rhusics::collision::dbvt::query_ray;
-use amethyst_rhusics::collision::Ray3;
-use amethyst_rhusics::rhusics_core::physics3d::Velocity3;
-use amethyst_rhusics::rhusics_core::ContactEvent;
-use amethyst_rhusics::rhusics_core::ForceAccumulator;
-use amethyst_rhusics::rhusics_core::NextFrame;
-use amethyst_rhusics::rhusics_core::Pose;
-use amethyst_rhusics::rhusics_ecs::collide3d::DynamicBoundingVolumeTree3;
-use amethyst_rhusics::rhusics_ecs::physics3d::BodyPose3;
 use rand::{thread_rng, Rng};
 
 use amethyst::animation::AnimationBundle;
 use amethyst::assets::*;
 use amethyst::audio::{AudioBundle, SourceHandle};
-use amethyst::core::cgmath::{SquareMatrix, Vector4};
 use amethyst::core::timing::Time;
 use amethyst::core::*;
 use amethyst::ecs::*;
@@ -81,11 +65,20 @@ use std::sync::{Arc, Mutex};
 use std::thread::{sleep, spawn};
 use std::time::Duration;
 use std::vec::IntoIter;
+use hyper::{Body, Client, Request, Response, Chunk};
+use hyper::client::HttpConnector;
+use hyper_tls::HttpsConnector;
+use tokio::prelude::{Future, Stream};
+use tokio::runtime::Runtime;
 
 use crossterm::cursor::TerminalCursor;
 //use crossterm::screen::RawScreen;
 use crossterm::terminal::{ClearType, Terminal};
 use crossterm::{Crossterm, Screen};
+
+use nphysics_ecs::*;
+//use nphysics::{World, Body3d};
+
 
 lazy_static! {
     static ref CROSSTERM: Crossterm = {
@@ -335,7 +328,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use *;
+    use crate::*;
 
     fn load_asset_loader() -> AssetLoader {
         AssetLoader::new(
@@ -480,95 +473,6 @@ impl AssetToFormat<Mesh> for Mesh{
     }
 }*/
 
-/// Generates a rectangle 2d mesh.
-pub fn gen_rectangle_mesh(
-    w: f32,
-    h: f32,
-    loader: &Loader,
-    storage: &AssetStorage<Mesh>,
-) -> Handle<Mesh> {
-    let verts = gen_rectangle_vertices(w, h);
-    loader.load_from_data(verts.into(), (), &storage)
-}
-
-/// Generate the vertices of a rectangle.
-pub fn gen_rectangle_vertices(w: f32, h: f32) -> Vec<PosTex> {
-    let data: Vec<PosTex> = vec![
-        PosTex {
-            position: [-w / 2., -h / 2., 0.],
-            tex_coord: [0., 0.],
-        },
-        PosTex {
-            position: [w / 2., -h / 2., 0.],
-            tex_coord: [1., 0.],
-        },
-        PosTex {
-            position: [w / 2., h / 2., 0.],
-            tex_coord: [1., 1.],
-        },
-        PosTex {
-            position: [w / 2., h / 2., 0.],
-            tex_coord: [1., 1.],
-        },
-        PosTex {
-            position: [-w / 2., h / 2., 0.],
-            tex_coord: [0., 1.],
-        },
-        PosTex {
-            position: [-w / 2., -h / 2., 0.],
-            tex_coord: [0., 0.],
-        },
-    ];
-    data
-}
-
-/// Generates vertices for a circle. The circle will be made of `resolution`
-/// triangles.
-pub fn generate_circle_vertices(radius: f32, resolution: usize) -> Vec<PosTex> {
-    use std::f32::consts::PI;
-
-    let mut vertices = Vec::with_capacity(resolution * 3);
-    let angle_offset = 2.0 * PI / resolution as f32;
-    // Helper function to generate the vertex at the specified angle.
-    let generate_vertex = |angle: f32| {
-        let x = angle.cos();
-        let y = angle.sin();
-        PosTex {
-            position: [x * radius, y * radius, 0.0],
-            tex_coord: [x, y],
-        }
-    };
-
-    for index in 0..resolution {
-        vertices.push(PosTex {
-            position: [0.0, 0.0, 0.0],
-            tex_coord: [0.0, 0.0],
-        });
-
-        vertices.push(generate_vertex(angle_offset * index as f32));
-        vertices.push(generate_vertex(angle_offset * (index + 1) as f32));
-    }
-
-    vertices
-}
-
-pub fn material_from_color(
-    color: [f32; 4],
-    loader: &Loader,
-    storage: &AssetStorage<Texture>,
-    material_defaults: &MaterialDefaults,
-) -> Material {
-    let albedo = loader.load_from_data(color.into(), (), &storage);
-    material_from_texture(albedo, material_defaults)
-}
-
-pub fn material_from_texture(texture: Handle<Texture>, defaults: &MaterialDefaults) -> Material {
-    Material {
-        albedo: texture,
-        ..defaults.0.clone()
-    }
-}
-
 pub fn value_near<B: Add<Output = B> + Sub<Output = B> + PartialOrd + Copy>(
     number: B,
     target: B,
@@ -577,58 +481,8 @@ pub fn value_near<B: Add<Output = B> + Sub<Output = B> + PartialOrd + Copy>(
     number >= target - margin && number <= target + margin
 }
 
-pub fn material_from_png(
-    path: &str,
-    loader: &Loader,
-    storage: &AssetStorage<Texture>,
-    material_defaults: &MaterialDefaults,
-) -> Material {
-    material_from_texture(
-        loader.load(path, PngFormat, TextureMetadata::srgb(), (), &storage),
-        material_defaults,
-    )
-}
-
-/// Doesn't work if you run `cargo run` while you are not in the root directory
-pub fn get_working_dir() -> String {
-    let mut base_path = String::from(
-        std::env::current_exe()
-            .expect("Failed to find executable path.")
-            .parent()
-            .expect("Failed to get parent directory of the executable.")
-            .to_str()
-            .unwrap(),
-    );
-    if base_path.contains("target/") || base_path.contains("target\\") {
-        base_path = String::from(".");
-    }
-    base_path
-}
-
 pub struct Music {
     pub music: Cycle<IntoIter<SourceHandle>>,
-}
-
-// TODO: Broken af dependency of TransformBundle pls fix asap lmao
-pub fn amethyst_gamedata_base_2d(base: &str) -> Result<GameDataBuilder<'static, 'static>> {
-    amethyst::start_logger(Default::default());
-
-    let display_config_path = format!("{}/assets/base/config/display.ron", base);
-
-    let key_bindings_path = format!("{}/assets/base/config/input.ron", base);
-
-    GameDataBuilder::default()
-        //.with(PrefabLoaderSystem::<MyPrefabData>::default(), "", &[])
-        .with_bundle(TransformBundle::new())?
-        .with_bundle(
-            InputBundle::<String, String>::new().with_bindings_from_file(&key_bindings_path)?,
-        )?.with_bundle(UiBundle::<String, String>::new())?
-        .with_bundle(AnimationBundle::<u32, Material>::new(
-            "animation_control_system",
-            "sampler_interpolation_system",
-        ))?.with_bundle(AudioBundle::new(|music: &mut Music| music.music.next()))?
-        .with(TimedDestroySystem, "timed_destroy", &[])
-        .with_basic_renderer(display_config_path, DrawFlat::<PosTex>::new(), false)
 }
 
 /*pub fn build_amethyst(game_data_builder: GameDataBuilder<'static,'static>, init_state: State<GameData<'static,'static>>) -> Result<Application<GameData<'static,'static>>>{
@@ -645,6 +499,9 @@ pub trait ShouldSave {
 
 /// System used to automatically save a Resource T to a file.
 /// On load, it will attempt to load it from the file and if it fails, it will use T::default().
+/// The resource in question will be wrapped into a `Dirty<T>` value inside of specs to keep track of changes made to the resource.
+/// This `System` will save the resource each time there is a modification.
+/// It is best used with resources that are modified less than once every second.
 pub struct AutoSaveSystem<T> {
     /// Absolute path.
     save_path: String,
@@ -652,6 +509,7 @@ pub struct AutoSaveSystem<T> {
 }
 
 impl<T> AutoSaveSystem<T> {
+    /// Create a new `AutoSaveSystem`.
     /// Save path is an absolute path.
     pub fn new(save_path: String) -> Self {
         AutoSaveSystem {
@@ -669,9 +527,9 @@ where
     fn setup(&mut self, res: &mut amethyst::ecs::Resources) {
         // attempt loading
         if let Ok(mut f) = File::open(&self.save_path) {
-            let mut c = String::new();
-            if let Ok(_) = f.read_to_string(&mut c) {
-                if let Ok(o) = ron::de::from_str::<T>(&c) {
+            let mut buf = String::new();
+            if let Ok(_) = f.read_to_string(&mut buf) {
+                if let Ok(o) = ron::de::from_str::<T>(&buf) {
                     res.insert(Dirty::new(o));
                 } else {
                     error!(
@@ -690,72 +548,34 @@ where
         }
         Self::SystemData::setup(res);
     }
-    fn run(&mut self, (mut d,): Self::SystemData) {
-        if d.dirty() {
-            d.clear();
-            let v = d.read();
-            let s = ron::ser::to_string(&v).expect(&format!(
+    fn run(&mut self, (mut data,): Self::SystemData) {
+        if data.dirty() {
+            data.clear();
+            let value = data.read();
+            let string_data = ron::ser::to_string(&value).expect(&format!(
                 "Unable to serialize the save struct for: {}",
                 self.save_path
             ));
-            let mut f = File::create(&self.save_path);
-            if f.is_ok() {
-                let file = f.as_mut().ok().unwrap();
-                let res = file.write_all(s.as_bytes());
-                if res.is_err() {
+            let file = File::create(&self.save_path);
+            match file {
+                Ok(mut f) => {
+                    // Write all serialized data to file.
+                    let res = f.write_all(string_data.as_bytes());
+                    if res.is_err() {
+                        error!(
+                            "Failed to write serialized save data to the file. Error: {:?}",
+                            res.err().expect("unreachable: We know there is an error from the if clause.")
+                        );
+                    }
+                },
+                Err(e) => {
                     error!(
-                        "Failed to write serialized save data to the file. Error: {:?}",
-                        res.err().unwrap()
+                        "Failed to create or load the save file \"{}\". Error: {:?}",
+                        &self.save_path,
+                        e
                     );
                 }
-            } else {
-                error!(
-                    "Failed to create or load the save file \"{}\". Error: {:?}",
-                    &self.save_path,
-                    &f.err().unwrap()
-                );
             }
-        }
-    }
-}
-
-pub struct DestroyAtTime {
-    pub time: f64,
-}
-
-impl Component for DestroyAtTime {
-    type Storage = VecStorage<Self>;
-}
-
-pub struct DestroyInTime {
-    pub timer: f64,
-}
-
-impl Component for DestroyInTime {
-    type Storage = VecStorage<Self>;
-}
-
-pub struct TimedDestroySystem;
-
-impl<'a> System<'a> for TimedDestroySystem {
-    type SystemData = (
-        Entities<'a>,
-        ReadStorage<'a, DestroyAtTime>,
-        WriteStorage<'a, DestroyInTime>,
-        Read<'a, Time>,
-    );
-    fn run(&mut self, (entities, dat, mut dit, time): Self::SystemData) {
-        for (e, d) in (&*entities, &dat).join() {
-            if time.absolute_time_seconds() > d.time {
-                entities.delete(e).expect("Failed to delete entity!");
-            }
-        }
-
-        for (e, mut d) in (&*entities, &mut dit).join() {
-            if d.timer <= 0.0 {
-                entities.delete(e).expect("Failed to delete entity!");
-            }
-            d.timer -= time.delta_seconds() as f64;
         }
     }
 }
@@ -805,12 +625,13 @@ where
     }
 }
 
+#[derive(Default)]
 pub struct FollowMouse;
 impl Component for FollowMouse {
-    type Storage = VecStorage<Self>;
+    type Storage = NullStorage<Self>;
 }
 
-#[derive(Default)]
+/*#[derive(Default)]
 pub struct FollowMouseSystem<A, B> {
     phantom: PhantomData<(A, B)>,
 }
@@ -845,7 +666,7 @@ fn run(&mut self, (follow_mouses,mut transforms, global_transforms, dimension,in
                 let proj = cam.proj;
                 let view = gt.0;
                 let pv = proj * view;
-                let inv = pv.invert().expect("Failed to inverse matrix");
+                let inv = Isometry3::from(pv).inverse().expect("Failed to inverse matrix");
                 let tmp: Vector4<f32> = [
                     fancy_normalize(x as f32, width),
                     -fancy_normalize(y as f32, height),
@@ -858,13 +679,13 @@ fn run(&mut self, (follow_mouses,mut transforms, global_transforms, dimension,in
                 //println!("Hopefully mouse pos in world: {:?}",res);
 
                 for (mut transform, _) in (&mut transforms, &follow_mouses).join() {
-                    transform.translation = [res.x, res.y, transform.translation.z].into();
+                    *transform.translation() = [res.x, res.y, transform.translation().z].into();
                     //println!("set pos to {:?}",transform.translation);
                 }
             }
         }
     }
-}
+}*/
 
 #[derive(Deserialize)]
 pub struct LootTreeNode<R> {
@@ -957,19 +778,21 @@ where
         WriteStorage<'a, Transform>,
         Read<'a, InputHandler<A, B>>,
         ReadStorage<'a, FpsMovement>,
-        WriteStorage<'a, ForceAccumulator<Vector3<f32>, Vector3<f32>>>,
+        WriteStorage<'a, DynamicBody>,
     );
 
-    fn run(&mut self, (time, transforms, input, tags, mut forces): Self::SystemData) {
+    fn run(&mut self, (time, transforms, input, tags, mut rigid_bodies): Self::SystemData) {
         let x = get_input_axis_simple(&self.right_input_axis, &input);
         let z = get_input_axis_simple(&self.forward_input_axis, &input);
 
         let dir = Vector3::new(x, 0.0, z);
         if dir.magnitude() != 0.0 {
-            for (transform, tag, mut force) in (&transforms, &tags, &mut forces).join() {
-                let mut dir = transform.rotation * dir;
+            for (transform, tag, mut rb) in (&transforms, &tags, &mut rigid_bodies).join() {
+                let mut dir: Vector3<f32> = transform.rotation() * dir;
                 dir = dir.normalize();
-                force.add_force(dir * tag.speed * time.delta_seconds());
+                if let DynamicBody::RigidBody(ref mut rb) = &mut rb {
+                    rb.velocity.linear += dir * tag.speed * time.delta_seconds();
+                }
             }
         }
     }
@@ -987,6 +810,7 @@ impl Component for RotationControl {
 
 /// The system that manages the view rotation.
 /// Controlled by the mouse.
+/// Put the RotationControl component on the Camera. The Camera should be a child of the player collider entity.
 #[derive(Debug, new)]
 pub struct FPSRotationRhusicsSystem<A, B> {
     sensitivity_x: f32,
@@ -1003,27 +827,25 @@ where
     B: Send + Sync + Hash + Eq + Clone + 'static,
 {
     type SystemData = (
+        Entities<'a>,
         Read<'a, EventChannel<Event>>,
         WriteStorage<'a, Transform>,
-        WriteStorage<'a, BodyPose3<f32>>,
-        WriteStorage<'a, NextFrame<BodyPose3<f32>>>,
         WriteStorage<'a, RotationControl>,
         Read<'a, WindowFocus>,
         Read<'a, HideCursor>,
-        ReadStorage<'a, FlyControlTag>,
+        ReadStorage<'a, Parent>,
     );
 
     fn run(
         &mut self,
         (
+            entities,
             events,
             mut transforms,
-            mut body_poses,
-            mut next_body_poses,
             mut rotation_controls,
             focus,
             hide,
-            fly_controls,
+            parents,
         ): Self::SystemData,
     ) {
         let focused = focus.is_focused;
@@ -1031,29 +853,22 @@ where
             if focused && hide.hide {
                 if let Event::DeviceEvent { ref event, .. } = *event {
                     if let DeviceEvent::MouseMotion { delta: (x, y) } = *event {
-                        for (mut transform, mut rotation_control) in
-                            (&mut transforms, &mut rotation_controls).join()
+
+                        // camera
+                        for (entity, mut rotation_control, parent) in (&*entities, &mut rotation_controls, &parents).join()
                         {
                             rotation_control.mouse_accum_x -= x as f32 * self.sensitivity_x;
                             rotation_control.mouse_accum_y += y as f32 * self.sensitivity_y;
                             // Limit maximum vertical angle to prevent locking the quaternion and/or going upside down.
-                            rotation_control.mouse_accum_y =
-                                rotation_control.mouse_accum_y.max(-89.5).min(89.5);
-
-                            transform.rotation =
-                                Quaternion::from_angle_x(Deg(-rotation_control.mouse_accum_y));
-
-                            for (mut body_pose, mut next_body_pose, _) in
-                                (&mut body_poses, &mut next_body_poses, &fly_controls).join()
-                            {
-                                body_pose.set_rotation(Quaternion::from_angle_y(Deg(
-                                    rotation_control.mouse_accum_x,
-                                )));
-                                next_body_pose
-                                    .value
-                                    .set_rotation(Quaternion::from_angle_y(Deg(
-                                        rotation_control.mouse_accum_x
-                                    )));
+                            //rotation_control.mouse_accum_y = rotation_control.mouse_accum_y.max(-89.5).min(89.5);
+                            rotation_control.mouse_accum_y = rotation_control.mouse_accum_y.max(-std::f64::consts::FRAC_PI_2 as f32+0.001).min(std::f64::consts::FRAC_PI_2 as f32-0.001);
+                            // Camera 
+                            if let Some(tr) = transforms.get_mut(entity) {
+                                *tr.rotation_mut() = UnitQuaternion::from_euler_angles(-rotation_control.mouse_accum_y, 0.0, 0.0);
+                            }
+                            // Player collider
+                            if let Some(tr) = transforms.get_mut(parent.entity) {
+                                *tr.rotation_mut() = UnitQuaternion::from_euler_angles(0.0, rotation_control.mouse_accum_x, 0.0);
                             }
                         }
                     }
@@ -1086,7 +901,7 @@ impl Component for Grounded {
 
 
 /// T: ObjectType for collider checks
-#[derive(new)]
+/*#[derive(new)]
 pub struct GroundCheckerSystem<T> {
     pub collider_types: Vec<T>,
     #[new(default)]
@@ -1179,7 +994,7 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
             grounded.ground = ground;
         }
     }
-}
+}*/
 
 #[derive(Default, new)]
 pub struct Jump {
@@ -1222,13 +1037,12 @@ impl<'a> System<'a> for JumpSystem {
         WriteStorage<'a, Jump>,
         Read<'a, Time>,
         Read<'a, InputHandler<String, String>>,
-        WriteStorage<'a, ForceAccumulator<Vector3<f32>, Vector3<f32>>>,
-        WriteStorage<'a, NextFrame<Velocity3<f32>>>,
+        WriteStorage<'a, DynamicBody>,
     );
 
     fn run(
         &mut self,
-        (entities, mut grounded, mut jumps, time, input, mut forces, mut velocities): Self::SystemData,
+        (entities, mut grounded, mut jumps, time, input, mut rigid_bodies): Self::SystemData,
 ){
         if let Some(true) = input.action_is_down("jump") {
             if !self.input_hold {
@@ -1237,59 +1051,59 @@ impl<'a> System<'a> for JumpSystem {
                 self.input_hold = true;
             }
 
-            for (entity, mut jump, mut force, mut velocity) in
-                (&*entities, &mut jumps, &mut forces, &mut velocities).join()
+            for (entity, mut jump, mut rb) in
+                (&*entities, &mut jumps, &mut rigid_bodies).join()
             {
-                // Holding the jump key on a non-auto jump controller.
-                if self.input_hold && !jump.auto_jump {
-                    continue;
-                }
-
-                // The last time we jumped wasn't long enough ago
-                if time.absolute_time_seconds() - self.last_logical_press < jump.input_cooldown {
-                    continue;
-                }
-                self.last_logical_press = time.absolute_time_seconds();
-
-                // If we need to check for it, verify that we are on the ground.
-                let mut grounded_since = time.absolute_time_seconds();
-                if jump.check_ground {
-                    if let Some(ground) = grounded.get(entity) {
-                        if !ground.ground {
-                            continue;
-                        }
-                        grounded_since = ground.since;
-                    } else {
+                if let DynamicBody::RigidBody(ref mut rb) = &mut rb {
+                    // Holding the jump key on a non-auto jump controller.
+                    if self.input_hold && !jump.auto_jump {
                         continue;
                     }
-                }
 
-                if time.absolute_time_seconds() - jump.last_jump > jump.jump_cooldown {
-                    // Jump!
-                    jump.last_jump = time.absolute_time_seconds();
-                    // Offset for jump. Positive = time when we jumped AFTER we hit the ground.
-                    jump.last_jump_offset = grounded_since - self.last_physical_press;
-
-                    let multiplier = if let Some(ref curve) = jump.jump_timing_boost {
-                        curve.eval(jump.last_jump_offset).unwrap_or(1.0)
-                    } else {
-                        1.0
-                    };
-
-                    if !jump.absolute {
-                        force.add_force(Vector3::<f32>::unit_y() * jump.jump_force * multiplier);
-                    } else {
-                        let (x, z) = {
-                            let v = velocity.value.linear();
-                            (v.x, v.z)
-                        };
-                        velocity
-                            .value
-                            .set_linear(Vector3::new(x, jump.jump_force * multiplier, z));
+                    // The last time we jumped wasn't long enough ago
+                    if time.absolute_time_seconds() - self.last_logical_press < jump.input_cooldown {
+                        continue;
                     }
-                }
-                if let Some(ref mut ground) = grounded.get_mut(entity) {
-                    ground.ground = false;
+                    self.last_logical_press = time.absolute_time_seconds();
+
+                    // If we need to check for it, verify that we are on the ground.
+                    let mut grounded_since = time.absolute_time_seconds();
+                    if jump.check_ground {
+                        if let Some(ground) = grounded.get(entity) {
+                            if !ground.ground {
+                                continue;
+                            }
+                            grounded_since = ground.since;
+                        } else {
+                            continue;
+                        }
+                    }
+
+                    if time.absolute_time_seconds() - jump.last_jump > jump.jump_cooldown {
+                        // Jump!
+                        jump.last_jump = time.absolute_time_seconds();
+                        // Offset for jump. Positive = time when we jumped AFTER we hit the ground.
+                        jump.last_jump_offset = grounded_since - self.last_physical_press;
+
+                        let multiplier = if let Some(ref curve) = jump.jump_timing_boost {
+                            curve.eval(jump.last_jump_offset).unwrap_or(1.0)
+                        } else {
+                            1.0
+                        };
+
+                        if !jump.absolute {
+                            rb.velocity.linear += Vector3::<f32>::y() * jump.jump_force * multiplier;
+                        } else {
+                            let (x, z) = {
+                                let v = rb.velocity.linear;
+                                (v.x, v.z)
+                            };
+                            rb.velocity.linear = Vector3::new(x, jump.jump_force * multiplier, z);
+                        }
+                    }
+                    if let Some(ref mut ground) = grounded.get_mut(entity) {
+                        ground.ground = false;
+                    }
                 }
             }
         } else {
@@ -1351,61 +1165,61 @@ where
         ReadStorage<'a, Transform>,
         ReadStorage<'a, BhopMovement3D>,
         ReadStorage<'a, Grounded>,
-        WriteStorage<'a, NextFrame<Velocity3<f32>>>,
+        WriteStorage<'a, DynamicBody>,
     );
 
     fn run(
         &mut self,
-        (time, input, transforms, movements, groundeds, mut velocities): Self::SystemData,
+        (time, input, transforms, movements, groundeds, mut rigid_bodies): Self::SystemData,
     ) {
         let x = get_input_axis_simple(&self.right_input_axis, &input);
         let z = get_input_axis_simple(&self.forward_input_axis, &input);
         let input = Vector2::new(x, z);
 
         if input.magnitude() != 0.0 {
-            for (transform, movement, grounded, mut velocity) in
-                (&transforms, &movements, &groundeds, &mut velocities).join()
+            for (transform, movement, grounded, mut rb) in
+                (&transforms, &movements, &groundeds, &mut rigid_bodies).join()
             {
-                let (acceleration, max_velocity) = if grounded.ground {
-                    (movement.accelerate_ground, movement.max_velocity_ground)
-                } else {
-                    (movement.accelerate_air, movement.max_velocity_air)
-                };
+                if let DynamicBody::RigidBody(ref mut rb) = &mut rb {
+                    let (acceleration, max_velocity) = if grounded.ground {
+                        (movement.accelerate_ground, movement.max_velocity_ground)
+                    } else {
+                        (movement.accelerate_air, movement.max_velocity_air)
+                    };
 
-                // Global to local coords.
-                let mut relative = SquareMatrix::invert(Basis3::from(transform.rotation).as_ref())
-                    .unwrap()
-                    * velocity.value.linear();
+                    // Global to local coords.
+                    let relative = transform.rotation().inverse() * rb.velocity.linear;
 
-                let new_vel_rel = if movement.absolute {
-                    // Absolute = We immediately set the maximum velocity without checking the max speed.
-                    Vector3::new(input.x * acceleration, relative.y, input.y * acceleration)
-                } else {
-                    let mut wish_vel = relative;
+                    let new_vel_rel = if movement.absolute {
+                        // Absolute = We immediately set the maximum velocity without checking the max speed.
+                        Vector3::new(input.x * acceleration, relative.y, input.y * acceleration)
+                    } else {
+                        let mut wish_vel = relative;
 
-                    if movement.counter_impulse {
-                        wish_vel = counter_impulse(input, wish_vel);
-                    }
+                        if movement.counter_impulse {
+                            wish_vel = counter_impulse(input, wish_vel);
+                        }
 
-                    wish_vel = accelerate_vector(
-                        time.delta_seconds(),
-                        input,
-                        wish_vel,
-                        acceleration,
-                        max_velocity,
-                    );
-                    if !movement.allow_projection_acceleration {
-                        wish_vel = limit_velocity(wish_vel, max_velocity);
-                    }
+                        wish_vel = accelerate_vector(
+                            time.delta_seconds(),
+                            input,
+                            wish_vel,
+                            acceleration,
+                            max_velocity,
+                        );
+                        if !movement.allow_projection_acceleration {
+                            wish_vel = limit_velocity(wish_vel, max_velocity);
+                        }
 
-                    wish_vel
-                };
+                        wish_vel
+                    };
 
-                // Global to local coords;
-                let new_vel = transform.rotation * new_vel_rel;
+                    // Global to local coords;
+                    let new_vel = transform.rotation() * new_vel_rel;
 
-                // Assign the new velocity to the player
-                velocity.value.set_linear(new_vel);
+                    // Assign the new velocity to the player
+                    rb.velocity.linear = new_vel;
+                }
             }
         }
     }
@@ -1449,41 +1263,43 @@ impl<'a> System<'a> for GroundFrictionSystem {
         Read<'a, Time>,
         ReadStorage<'a, Grounded>,
         ReadStorage<'a, GroundFriction3D>,
-        WriteStorage<'a, NextFrame<Velocity3<f32>>>,
+        WriteStorage<'a, DynamicBody>,
     );
 
-    fn run(&mut self, (time, groundeds, frictions, mut velocities): Self::SystemData) {
+    fn run(&mut self, (time, groundeds, frictions, mut rigid_bodies): Self::SystemData) {
         fn apply_friction_single(v: f32, friction: f32) -> f32 {
             if v.abs() <= friction {
                 return 0.0;
             }
             v - friction
         }
-        for (grounded, friction, mut velocity) in (&groundeds, &frictions, &mut velocities).join() {
-            if grounded.ground
-                && time.absolute_time_seconds() - grounded.since
-                    >= friction.ground_time_before_apply
-            {
-                let (x, y, z) = {
-                    let v = velocity.value.linear();
-                    (v.x, v.y, v.z)
-                };
-                match friction.friction_mode {
-                    FrictionMode::Linear => {
-                        let slowdown = friction.friction * time.delta_seconds();
-                        velocity.value.set_linear(Vector3::new(
-                            apply_friction_single(x, slowdown),
-                            y,
-                            apply_friction_single(z, slowdown),
-                        ));
-                    }
-                    FrictionMode::Percent => {
-                        let coef = friction.friction * time.delta_seconds();
-                        velocity.value.set_linear(Vector3::new(
-                            apply_friction_single(x, x * coef),
-                            y,
-                            apply_friction_single(z, z * coef),
-                        ));
+        for (grounded, friction, mut rb) in (&groundeds, &frictions, &mut rigid_bodies).join() {
+            if let DynamicBody::RigidBody(ref mut rb) = &mut rb {
+                if grounded.ground
+                    && time.absolute_time_seconds() - grounded.since
+                        >= friction.ground_time_before_apply
+                {
+                    let (x, y, z) = {
+                        let v = rb.velocity.linear;
+                        (v.x, v.y, v.z)
+                    };
+                    match friction.friction_mode {
+                        FrictionMode::Linear => {
+                            let slowdown = friction.friction * time.delta_seconds();
+                            rb.velocity.linear = Vector3::new(
+                                apply_friction_single(x, slowdown),
+                                y,
+                                apply_friction_single(z, slowdown),
+                            );
+                        }
+                        FrictionMode::Percent => {
+                            let coef = friction.friction * time.delta_seconds();
+                            rb.velocity.linear = Vector3::new(
+                                apply_friction_single(x, x * coef),
+                                y,
+                                apply_friction_single(z, z * coef),
+                            );
+                        }
                     }
                 }
             }
@@ -1508,7 +1324,7 @@ pub fn accelerate_vector(
     let input3 = Vector3::new(input.x, 0.0, input.y);
     let rel_flat = Vector3::new(rel.x, 0.0, rel.z);
     if input3.magnitude() > 0.0 {
-        let proj = rel_flat.dot(input3.normalize());
+        let proj = rel_flat.dot(&input3.normalize());
         let mut accel_velocity = acceleration * delta_time as f32;
         if proj + accel_velocity > max_velocity {
             accel_velocity = max_velocity - proj;
@@ -1648,6 +1464,151 @@ pub fn set_discord_state(state: String, world: &mut World) {
     }
 }
 
+pub fn https_client() -> Client<HttpsConnector<HttpConnector>, Body> {
+    let https = HttpsConnector::new(2).expect("TLS initialization failed");
+    Client::builder().build::<_, hyper::Body>(https)
+}
+
+pub fn post_json(url: String, data: String) -> Request<Body> {
+    Request::post(&url)
+        .header("Content-Type", "application/json")
+        .body(Body::from(data))
+        .unwrap()
+}
+
+pub fn post_json_typed<T: Serialize>(url: String, data: T) -> Request<Body> {
+    Request::post(&url)
+        .header("Content-Type", "application/json")
+        .body(Body::from(serde_json::to_string(&data).expect("Failed to serialize data to json for post request creation.")))
+        .expect("Failed to create post `Request`")
+}
+
+pub fn exec_http_request(client: &Client<HttpsConnector<HttpConnector>, Body>,
+    request: Request<Body>,
+    future_runtime: &mut Runtime,
+    callback_queue: &CallbackQueue,
+    on_success: Box<Fn(Response<Body>) -> Box<Fn(&mut World) + Send> + Send>,
+    on_error: Box<Fn(hyper::Error) -> Box<Fn(&mut World) + Send> + Send>
+    ) {
+    let send_handle1 = callback_queue.send_handle();
+    let send_handle2 = callback_queue.send_handle();
+    let future = client
+        .request(request)
+        /*.and_then(move |result| {
+            println!("Response: {}", result.status());
+            println!("Headers: {:#?}", result.headers());
+
+            // The body is a stream, and for_each returns a new Future
+            // when the stream is finished, and calls the closure on
+            // each chunk of the body...
+            result.into_body().for_each(move |chunk| {
+                /*io::stdout().write_all(&chunk)
+                    .map_err(|e| panic!("example expects stdout is open, error={}", e))*/
+                match serde_json::from_slice::<Auth>(&chunk) {
+                    Ok(a) => {},
+                    Err(e) => eprintln!("Failed to parse received data to Auth: {}", e),
+                }
+                Ok(())
+            })
+            //serde_json::from_slice::<Auth>(result.into_body())
+        })*/
+        // If all good, just tell the user...
+        .map(move |result| {
+            let callback = on_success(result);
+            send_handle1.send(callback).expect("Failed to send Callback to CallbackQueue from future completion.");
+        })
+        // If there was an error, let the user know...
+        .map_err(move |err| {
+            let callback = on_error(err);
+            send_handle2.send(callback).expect("Failed to send Callback to CallbackQueue from future error.");
+        });
+
+    future_runtime.spawn(future);
+}
+
+/// Warning: Blocks the thread in which it is called until the stream has been fully consumed.
+/// Avoid using with file downloads.
+/// This will only return the first parse error instead of all of them, because its easier to use that way.
+pub fn response_to_chunks(response: Response<Body>) -> Vec<std::result::Result<Chunk, hyper::Error>> {
+    response.into_body().wait().collect::<Vec<_>>()
+}
+
+pub fn parse_chunk<T: DeserializeOwned>(chunk: &Chunk) -> std::result::Result<T, serde_json::Error> {
+    serde_json::from_slice::<T>(&chunk)
+}
+
+/// Super simplistic token-based authentification.
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Auth {
+    token: String,
+}
+
+pub fn verts_from_mesh_data(mesh_data: &MeshData, scale: &Vector3<f32>) -> Vec<Point3<f32>> {
+    if let MeshData::Creator(combo) = mesh_data {
+        combo
+            .vertices()
+            .iter()
+            .map(|sep| {
+                Point3::new(
+                    (sep.0)[0] * scale.x,
+                    (sep.0)[1] * scale.y,
+                    (sep.0)[2] * scale.z,
+                )
+            }).collect::<Vec<_>>()
+    } else {
+        error!("MeshData was not of combo type! Not extracting vertices.");
+        vec![]
+    }
+}
+
+
+/// Calculates in relative time using the internal engine clock.
+#[derive(Default, Serialize)]
+pub struct RelativeTimer {
+    pub start: f64,
+    pub current: f64,
+    pub running: bool,
+}
+
+impl RelativeTimer {
+    pub fn get_text(&self, decimals: usize) -> String {
+        sec_to_display(self.duration(), decimals)
+    }
+    pub fn duration(&self) -> f64 {
+        self.current - self.start
+    }
+    pub fn start(&mut self, cur_time: f64) {
+        self.start = cur_time;
+        self.current = cur_time;
+        self.running = true;
+    }
+    pub fn update(&mut self, cur_time: f64) {
+        if self.running {
+            self.current = cur_time;
+        }
+    }
+    pub fn stop(&mut self) {
+        self.running = false;
+    }
+}
+
+
+pub fn sec_to_display(secs: f64, decimals: usize) -> String {
+    if secs > -0.00001 && secs < 0.00001 {
+        String::from("-")
+    } else {
+        format!("{:0.*}", decimals, secs)
+    }
+}
+
+pub struct RelativeTimerSystem;
+
+impl<'a> System<'a> for RelativeTimerSystem {
+    type SystemData = (Write<'a, RelativeTimer>, Read<'a, Time>);
+    fn run(&mut self, (mut timer, time): Self::SystemData) {
+        timer.update(time.absolute_time_seconds());
+    }
+}
 
 /*
   * = could do it in the engine directly

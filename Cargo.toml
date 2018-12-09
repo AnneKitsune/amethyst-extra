@@ -8,14 +8,17 @@ keywords = ["amethyst", "extra", "utils", "controllers", "fps"]
 documentation = "https://docs.rs/amethyst-extra"
 repository = "https://github.com/jojolepro/amethyst-extra"
 license = "Apache-2.0"
+edition = "2018"
 exclude = ["doc"]
 
 [dependencies]
-amethyst = "0.9"
+#amethyst = "0.9"
+crossbeam-channel = "0.3.1"
 discord-rpc-client = "0.2.3"
 partial_function = "0.4.0"
 serde = { version = "1.0", features = ["serde_derive"] }
 serde_derive = "1.0"
+serde_json = "1.0"
 ron = "0.2"
 log = "0.4"
 dirty = "0.2"
@@ -25,7 +28,19 @@ rand = "0.5.5"
 lazy_static = "1.1.0"
 derive-new = "0.5"
 #specs-derive = { git = "https://github.com/slide-rs/specs" }
-amethyst-rhusics = "0.3"
+#amethyst-rhusics = "0.3"
 
-#amethyst = { git = "https://github.com/amethyst/amethyst", features = ["nightly"] }
+#nphysics3d = "0.9.4"
+
+#ncollide3d = "0.17.3"
+
+nphysics-ecs-dumb = { git = "https://github.com/jojolepro/nphysics-ecs-dumb", branch = "changes" }
+
+hyper = "0.12.11"
+hyper-tls = "0.3.1"
+
+tokio = "0.1.7"
+tokio-executor = "0.1.0"
+
+amethyst = { git = "https://github.com/amethyst/amethyst", branch="master", features = ["nightly"] }
 #amethyst-rhusics = { git = "https://github.com/amethyst/amethyst-rhusics" }
