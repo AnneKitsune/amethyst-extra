@@ -1540,7 +1540,7 @@ pub fn parse_chunk<T: DeserializeOwned>(chunk: &Chunk) -> std::result::Result<T,
 /// Super simplistic token-based authentification.
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Auth {
-    token: String,
+    pub token: String,
 }
 
 pub fn verts_from_mesh_data(mesh_data: &MeshData, scale: &Vector3<f32>) -> Vec<Point3<f32>> {
