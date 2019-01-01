@@ -9,6 +9,7 @@ extern crate crossterm;
 extern crate dirty;
 extern crate fern;
 pub extern crate partial_function;
+extern crate roman;
 extern crate rand;
 #[macro_use]
 extern crate lazy_static;
@@ -76,6 +77,7 @@ use crossterm::terminal::{ClearType, Terminal};
 use crossterm::{Crossterm, Screen};
 
 use nphysics_ecs::*;
+use nphysics_ecs::ncollide::query::Proximity;
 //use nphysics::{World, Body3d};
 
 
@@ -900,11 +902,11 @@ impl Component for Grounded {
 
 
 /// T: ObjectType for collider checks
-/*#[derive(new)]
+#[derive(new)]
 pub struct GroundCheckerSystem<T> {
     pub collider_types: Vec<T>,
     #[new(default)]
-    contact_reader: Option<ReaderId<ContactEvent<Entity, Point3<f32>>>>,
+    contact_reader: Option<ReaderId<EntityProximityEvent>>,
 }
 
 impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
@@ -913,9 +915,8 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
         ReadStorage<'a, Transform>,
         WriteStorage<'a, Grounded>,
         ReadStorage<'a, T>,
-        Read<'a, DynamicBoundingVolumeTree3<f32>>,
         Read<'a, Time>,
-        Read<'a, EventChannel<ContactEvent<Entity, Point3<f32>>>>,
+        Read<'a, EventChannel<EntityProximityEvent>>,
     );
 
     fn setup(&mut self, mut res: &mut Resources) {
@@ -928,13 +929,13 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
 
     fn run(
         &mut self,
-        (entities, transforms, mut grounded, objecttypes, tree, time, contacts): Self::SystemData,
+        (entities, transforms, mut grounded, objecttypes, time, contacts): Self::SystemData,
     ) {
-        let down = -Vector3::unit_y();
+        //let down = -Vector3::<f32>::y();
         for (entity, transform, mut grounded) in (&*entities, &transforms, &mut grounded).join() {
             let mut ground = false;
 
-            let ray = Ray3::new(Point3::from_vec(transform.translation), down);
+            /*let ray = Ray3::new(Point3::from_vec(transform.translation), down);
 
             // For all in ray
             for (v, p) in query_ray(&*tree, ray) {
@@ -951,27 +952,27 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
                     }
                     //info!("hit bounding volume of {:?} at point {:?}", v.value, p);
                 }
-            }
+            }*/
 
-            /*info!("run {:?}", entity);
+            info!("run {:?}", entity);
             // Check for secondary collider if any
             for contact in contacts.read(&mut self.contact_reader.as_mut().unwrap()) {
-                info!("Contact {:?} -> {:?}",contact.bodies.0, contact.bodies.1);
+                info!("Contact {:?} -> {:?}",contact.0, contact.1);
                 // Here because we need to empty the contacts EventChannel
                 if let Some(secondary) = grounded.watch_entity {
                     info!("Secondary");
-                    if contact.bodies.0 == entity || contact.bodies.1 == entity {
+                    if contact.0 == entity || contact.1 == entity {
                         // We hit our player... let's ignore that.
                         continue;
                     }
                     info!("tmp1");
-                    if contact.bodies.0 != secondary && contact.bodies.1 != secondary {
+                    if contact.0 != secondary && contact.1 != secondary {
                         // This has nothing to do with the secondary collider. Skip!
                         continue;
                     }
                     info!("type check");
-                    let type1 = objecttypes.get(contact.bodies.0);
-                    let type2 = objecttypes.get(contact.bodies.1);
+                    let type1 = objecttypes.get(contact.0);
+                    let type2 = objecttypes.get(contact.1);
 
                     if type1.is_none() || type2.is_none() {
                         continue;
@@ -981,19 +982,33 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
                     if self.collider_types.contains(type1.unwrap())
                         || self.collider_types.contains(type2.unwrap())
                     {
+                        match contact.2.new_status {
+                            // Collision with ground
+                            Proximity::Intersecting | Proximity::WithinMargin => {
+                                if ground && !grounded.ground {
+                                    // Just grounded
+                                    grounded.since = time.absolute_time_seconds();
+                                }
+                                grounded.ground = true;
+                            },
+                            // Collision stop
+                            Proximity::Disjoint => {
+                                grounded.ground = false;
+                            }
+                        }
                         ground = true;
                     }
                 }
-            }*/
+            }
 
-            if ground && !grounded.ground {
+            /*if ground && !grounded.ground {
                 // Just grounded
                 grounded.since = time.absolute_time_seconds();
             }
-            grounded.ground = ground;
+            grounded.ground = ground;*/
         }
     }
-}*/
+}
 
 #[derive(Default, new)]
 pub struct Jump {
@@ -1780,7 +1795,139 @@ where
     }
 }
 
+
+pub struct Tiered<T> {
+    pub tier: u32,
+    pub element: T,
+}
+
+pub struct Leveled<T: LevelFor> {
+    pub level: u32,
+    pub accumulated_xp: u32,
+    pub element: T,
+}
+
+// Will usually use PartialFunction.
+pub trait LevelFor {
+    fn level_for_xp(&self, xp: u32) -> u32;
+}
+
+pub struct ItemDefinition<K> {
+    pub key: K,
+    pub name: String,
+    pub description: String,
+    pub maximum_stack: u32,
+    pub maximum_durability: Option<u32>,
+}
+
+pub struct ItemInstance<K> {
+    pub item_key: K,
+    pub count: u32,
+    pub durability: Option<u32>,
+}
+
+pub trait Stat {
+
+}
+
+// StatEffector = Effect
+
+pub struct EffectDefinition<K> {
+    pub key: K,
+    pub name: String,
+    pub description: String,
+}
+
+pub struct EffectInstance<K> {
+    pub effector: K
+}
+
+// Stat of T driving a transition of T to T'
+pub trait StatTransition {
+    // stat transition can fail (ie missing mana)
+
+    // add key
+}
+
+// World interaction
+// or
+// Stat buff
+pub struct SkillDefinition<K, S> {
+    pub key: K,
+    pub name: String,
+    pub description: String,
+    pub cooldown: f64,
+    // stat usage
+    pub stat_transition: Option<S>,
+}
+
+pub struct SkillInstance<K> {
+    pub skill_key: K,
+    pub current_cooldown: f64,
+}
+
+pub type ItemDefinitionRepository<K> = HashMap<K, ItemDefinition<K>>;
+
+pub struct Inventory<K> {
+    content: Vec<ItemInstance<K>>, // usually Stacked<T>
+}
+
+pub fn number_to_roman(n: u32) -> Option<String> {
+    roman::to(n as i32)
+}
+
+
+pub struct User {
+    pub id: i32,
+    pub name: String,
+}
+
+pub struct UserGroup {
+    pub id: u32,
+    pub users: Vec<i32>,
+
+}
+
+pub struct Faction {
+    // minecraft-like faction system
+}
+
+pub struct LandClaim {
+
+}
+
+// Building parts + logic
+
+
+/*
+Mock data
+
+Player Stats:
+Health
+Physical Damage
+Mana
+
+Player Skills:
+Repulsive Orb (-10 mana/throw, 1 sec cooldown)
+
+Player Levels:
+global level
+health level
+mana regen level
+physical damage level
+
+Item Def:
+Mana pendant (+ 10 max mana, +1.0 mana regen / sec)
+
+Item Instance:
+Greater Mana pendant (Capacity Enchant):
+    Mana pendant regular +
+    Greater (20% buff all effects) (+2 max mana, +0.2 mana regen)
+    Capacity Enchant (+20 max mana)
+
+*/
+
+
 /*
   2D controllers
-  item/inventory system
 */
