@@ -859,13 +859,13 @@ where
                         for (entity, mut rotation_control, parent) in (&*entities, &mut rotation_controls, &parents).join()
                         {
                             rotation_control.mouse_accum_x -= x as f32 * self.sensitivity_x;
-                            rotation_control.mouse_accum_y += y as f32 * self.sensitivity_y;
+                            rotation_control.mouse_accum_y -= y as f32 * self.sensitivity_y;
                             // Limit maximum vertical angle to prevent locking the quaternion and/or going upside down.
                             //rotation_control.mouse_accum_y = rotation_control.mouse_accum_y.max(-89.5).min(89.5);
                             rotation_control.mouse_accum_y = rotation_control.mouse_accum_y.max(-std::f64::consts::FRAC_PI_2 as f32+0.001).min(std::f64::consts::FRAC_PI_2 as f32-0.001);
                             // Camera 
                             if let Some(tr) = transforms.get_mut(entity) {
-                                *tr.rotation_mut() = UnitQuaternion::from_euler_angles(-rotation_control.mouse_accum_y, 0.0, 0.0);
+                                *tr.rotation_mut() = UnitQuaternion::from_euler_angles(rotation_control.mouse_accum_y, 0.0, 0.0);
                             }
                             // Player collider
                             if let Some(tr) = transforms.get_mut(parent.entity) {
@@ -1059,7 +1059,6 @@ impl<'a> System<'a> for ForceUprightSystem {
             let angles = tr.rotation().euler_angles();
             let new_quat = UnitQuaternion::from_euler_angles(0.0, angles.1, 0.0);
             *tr.rotation_mut() = new_quat;
-            info!("forced upright");
         });
     }
 }
