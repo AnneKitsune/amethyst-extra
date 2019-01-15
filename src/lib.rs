@@ -900,6 +900,12 @@ impl Component for Grounded {
     type Storage = DenseVecStorage<Self>;
 }
 
+#[derive(Default, new)]
+pub struct GroundCheckTag;
+
+impl Component for GroundCheckTag {
+    type Storage = DenseVecStorage<Self>;
+}
 
 /// T: ObjectType for collider checks
 #[derive(new)]
@@ -1030,11 +1036,31 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
         }
     }
 }
-#[derive(Default, new)]
-pub struct GroundCheckTag;
 
-impl Component for GroundCheckTag {
+#[derive(Default, new)]
+pub struct UprightTag;
+
+impl Component for UprightTag {
     type Storage = DenseVecStorage<Self>;
+}
+
+#[derive(Default, new)]
+pub struct ForceUprightSystem;
+
+impl<'a> System<'a> for ForceUprightSystem {
+    type SystemData = (
+        WriteStorage<'a, Transform>,
+        ReadStorage<'a, UprightTag>,
+    );
+
+    fn run(&mut self, (mut transforms, uprights): Self::SystemData) {
+        (&mut transforms, &uprights).join().map(|t| t.0).for_each(|tr| {
+            // roll, pitch, yaw
+            let angles = tr.rotation().euler_angles();
+            let new_quat = UnitQuaternion::from_euler_angles(0.0, 0.0, angles.2);
+            *tr.rotation_mut() = new_quat;
+        });
+    }
 }
 
 
