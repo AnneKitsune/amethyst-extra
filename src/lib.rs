@@ -934,7 +934,7 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
         (entities, transforms, mut grounded, objecttypes, time, contacts, colliders, ground_checks): Self::SystemData,
     ) {
         //let down = -Vector3::<f32>::y();
-        for (entity, transform, feet_collider, mut grounded) in (&*entities, &transforms, &colliders, &mut grounded).join() {
+        for (entity, transform2, player_collider, mut grounded) in (&*entities, &transforms, &colliders, &mut grounded).join() {
             //let mut ground = false;
 
             /*let ray = Ray3::new(Point3::from_vec(transform.translation), down);
@@ -1004,24 +1004,29 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
 
 
             }*/
-            info!("Gonna check for collision at pos {:?}", transform);
 
-            let ground = (&*entities, &transforms, &colliders, &ground_checks).join().any(|(entity, tr, collider, _)| {
-                if let Proximity::Intersecting = proximity(&transform.isometry(), &*feet_collider.shape, &tr.isometry(), &*collider.shape, 0.0) {
-                    warn!("COLLISION!!!");
-                    true
-                } else {
-                    false
+            if let Some(secondary) = grounded.watch_entity {
+                let transform = transforms.get(secondary).expect("No transform component on secondary collider.");
+                let feet_collider = colliders.get(secondary).expect("No collider component on secondary collider.");
+                info!("Gonna check for collision at player pos {:?}", transform.translation());
+
+                let ground = (&*entities, &transforms, &colliders, &ground_checks).join().any(|(entity, tr, collider, _)| {
+                    if let Proximity::Intersecting = proximity(&transform.isometry(), &*feet_collider.shape, &tr.isometry(), &*collider.shape, 0.0) {
+                        warn!("COLLISION!!!");
+                        true
+                    } else {
+                        false
+                    }
+                });
+
+
+
+                if ground && !grounded.ground {
+                    // Just grounded
+                    grounded.since = time.absolute_time_seconds();
                 }
-            });
-
-
-
-            if ground && !grounded.ground {
-                // Just grounded
-                grounded.since = time.absolute_time_seconds();
+                grounded.ground = ground;
             }
-            grounded.ground = ground;
         }
     }
 }
