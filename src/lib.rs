@@ -1057,7 +1057,7 @@ impl<'a> System<'a> for ForceUprightSystem {
         (&mut transforms, &uprights).join().map(|t| t.0).for_each(|tr| {
             // roll, pitch, yaw
             let angles = tr.rotation().euler_angles();
-            let new_quat = UnitQuaternion::from_euler_angles(0.0, 0.0, angles.2);
+            let new_quat = UnitQuaternion::from_euler_angles(0.0, angles.1, 0.0);
             *tr.rotation_mut() = new_quat;
         });
     }
