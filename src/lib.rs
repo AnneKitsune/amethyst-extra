@@ -1007,7 +1007,6 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
             info!("Gonna check for collision at pos {:?}", transform);
 
             let ground = (&*entities, &transforms, &colliders, &ground_checks).join().any(|(entity, tr, collider, _)| {
-                info!("Checking for collision!");
                 if let Proximity::Intersecting = proximity(&transform.isometry(), &*feet_collider.shape, &tr.isometry(), &*collider.shape, 0.0) {
                     warn!("COLLISION!!!");
                     true
