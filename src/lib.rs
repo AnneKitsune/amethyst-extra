@@ -77,7 +77,7 @@ use crossterm::terminal::{ClearType, Terminal};
 use crossterm::{Crossterm, Screen};
 
 use nphysics_ecs::*;
-use nphysics_ecs::ncollide::query::Proximity;
+use nphysics_ecs::ncollide::query::*;
 //use nphysics::{World, Body3d};
 
 
@@ -917,6 +917,8 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
         ReadStorage<'a, T>,
         Read<'a, Time>,
         Read<'a, EventChannel<EntityProximityEvent>>,
+        ReadStorage<'a, Collider>,
+        ReadStorage<'a, GroundCheckTag>,
     );
 
     fn setup(&mut self, mut res: &mut Resources) {
@@ -929,11 +931,11 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
 
     fn run(
         &mut self,
-        (entities, transforms, mut grounded, objecttypes, time, contacts): Self::SystemData,
+        (entities, transforms, mut grounded, objecttypes, time, contacts, colliders, ground_checks): Self::SystemData,
     ) {
         //let down = -Vector3::<f32>::y();
-        for (entity, transform, mut grounded) in (&*entities, &transforms, &mut grounded).join() {
-            let mut ground = false;
+        for (entity, transform, feet_collider, mut grounded) in (&*entities, &transforms, &colliders, &mut grounded).join() {
+            //let mut ground = false;
 
             /*let ray = Ray3::new(Point3::from_vec(transform.translation), down);
 
@@ -954,7 +956,7 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
                 }
             }*/
 
-            info!("run {:?}", entity);
+            /*info!("run {:?}", entity);
             // Check for secondary collider if any
             for contact in contacts.read(&mut self.contact_reader.as_mut().unwrap()) {
                 info!("Contact {:?} -> {:?}",contact.0, contact.1);
@@ -999,16 +1001,35 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
                         ground = true;
                     }
                 }
-            }
 
-            /*if ground && !grounded.ground {
+
+            }*/
+
+            let ground = (&*entities, &transforms, &colliders, &ground_checks).join().any(|(entity, tr, collider, _)| {
+                if let Proximity::Intersecting = proximity(&transform.isometry(), &*feet_collider.shape, &tr.isometry(), &*collider.shape, 0.0) {
+                    true
+                } else {
+                    false
+                }
+            });
+
+
+
+            if ground && !grounded.ground {
                 // Just grounded
                 grounded.since = time.absolute_time_seconds();
             }
-            grounded.ground = ground;*/
+            grounded.ground = ground;
         }
     }
 }
+#[derive(Default, new)]
+pub struct GroundCheckTag;
+
+impl Component for GroundCheckTag {
+    type Storage = DenseVecStorage<Self>;
+}
+
 
 #[derive(Default, new)]
 pub struct Jump {
