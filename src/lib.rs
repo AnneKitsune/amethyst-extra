@@ -1059,6 +1059,7 @@ impl<'a> System<'a> for ForceUprightSystem {
             let angles = tr.rotation().euler_angles();
             let new_quat = UnitQuaternion::from_euler_angles(0.0, angles.1, 0.0);
             *tr.rotation_mut() = new_quat;
+            info!("forced upright");
         });
     }
 }
