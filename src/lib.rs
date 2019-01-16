@@ -850,26 +850,40 @@ where
         ): Self::SystemData,
     ) {
         let focused = focus.is_focused;
-        for event in events.read(&mut self.event_reader.as_mut().unwrap()) {
-            if focused && hide.hide {
-                if let Event::DeviceEvent { ref event, .. } = *event {
-                    if let DeviceEvent::MouseMotion { delta: (x, y) } = *event {
+        let win_events = events.read(&mut self.event_reader.as_mut().unwrap()).collect::<Vec<_>>();
+        if !win_events.iter().any(|e| match e {
+            Event::DeviceEvent { event: DeviceEvent::MouseMotion{..},..} => true,
+            _ => false,
+        }) {
+            // Patch until we have physics constraints
+            for (rotation_control, parent) in (&rotation_controls, &parents).join() {
+                // Player collider
+                if let Some(tr) = transforms.get_mut(parent.entity) {
+                    *tr.rotation_mut() = UnitQuaternion::from_euler_angles(0.0, rotation_control.mouse_accum_x, 0.0);
+                }
+            }
+        } else {
+            for event in win_events {
+                if focused && hide.hide {
+                    if let Event::DeviceEvent { ref event, .. } = *event {
+                        if let DeviceEvent::MouseMotion { delta: (x, y) } = *event {
 
-                        // camera
-                        for (entity, mut rotation_control, parent) in (&*entities, &mut rotation_controls, &parents).join()
-                        {
-                            rotation_control.mouse_accum_x -= x as f32 * self.sensitivity_x;
-                            rotation_control.mouse_accum_y -= y as f32 * self.sensitivity_y;
-                            // Limit maximum vertical angle to prevent locking the quaternion and/or going upside down.
-                            //rotation_control.mouse_accum_y = rotation_control.mouse_accum_y.max(-89.5).min(89.5);
-                            rotation_control.mouse_accum_y = rotation_control.mouse_accum_y.max(-std::f64::consts::FRAC_PI_2 as f32+0.001).min(std::f64::consts::FRAC_PI_2 as f32-0.001);
-                            // Camera 
-                            if let Some(tr) = transforms.get_mut(entity) {
-                                *tr.rotation_mut() = UnitQuaternion::from_euler_angles(rotation_control.mouse_accum_y, 0.0, 0.0);
-                            }
-                            // Player collider
-                            if let Some(tr) = transforms.get_mut(parent.entity) {
-                                *tr.rotation_mut() = UnitQuaternion::from_euler_angles(0.0, rotation_control.mouse_accum_x, 0.0);
+                            // camera
+                            for (entity, mut rotation_control, parent) in (&*entities, &mut rotation_controls, &parents).join()
+                            {
+                                rotation_control.mouse_accum_x -= x as f32 * self.sensitivity_x;
+                                rotation_control.mouse_accum_y -= y as f32 * self.sensitivity_y;
+                                // Limit maximum vertical angle to prevent locking the quaternion and/or going upside down.
+                                // rotation_control.mouse_accum_y = rotation_control.mouse_accum_y.max(-89.5).min(89.5);
+                                rotation_control.mouse_accum_y = rotation_control.mouse_accum_y.max(-std::f64::consts::FRAC_PI_2 as f32+0.001).min(std::f64::consts::FRAC_PI_2 as f32-0.001);
+                                // Camera 
+                                if let Some(tr) = transforms.get_mut(entity) {
+                                    *tr.rotation_mut() = UnitQuaternion::from_euler_angles(rotation_control.mouse_accum_y, 0.0, 0.0);
+                                }
+                                // Player collider
+                                if let Some(tr) = transforms.get_mut(parent.entity) {
+                                    *tr.rotation_mut() = UnitQuaternion::from_euler_angles(0.0, rotation_control.mouse_accum_x, 0.0);
+                                }
                             }
                         }
                     }
@@ -1044,6 +1058,8 @@ impl Component for UprightTag {
     type Storage = DenseVecStorage<Self>;
 }
 
+
+/// BROKEN, DO NOT USE
 #[derive(Default, new)]
 pub struct ForceUprightSystem;
 
