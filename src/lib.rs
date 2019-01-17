@@ -50,6 +50,7 @@ use amethyst::ecs::*;
 use amethyst::input::*;
 use amethyst::prelude::*;
 use amethyst::ui::{UiBundle, UiText};
+use amethyst::utils::removal::Removal;
 use amethyst::Result;
 use dirty::Dirty;
 use discord_rpc_client::Client as DiscordClient;
@@ -68,6 +69,7 @@ use std::io::Write as IOWrite;
 use std::iter::Cycle;
 use std::marker::PhantomData;
 use std::ops::{Add, Sub};
+use std::fmt::Debug;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::thread::{sleep, spawn};
@@ -526,7 +528,7 @@ pub fn avg_float_to_string(value: f32, decimals: u32) -> String {
     ((value * mult).ceil() / mult).to_string()
 }
 
-pub fn add_removal_to_entity<T: PartialEq + Clone + Debug>(entity: Entity, id: T, world: &World) {
+pub fn add_removal_to_entity<T: PartialEq + Clone + Debug + Send + Sync + 'static>(entity: Entity, id: T, world: &World) {
     world
         .write_storage::<Removal<T>>()
         .insert(entity, Removal::new(id))
@@ -1723,25 +1725,6 @@ pub fn parse_chunk<T: DeserializeOwned>(
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Auth {
     pub token: String,
-}
-
-pub fn verts_from_mesh_data(mesh_data: &MeshData, scale: &Vector3<f32>) -> Vec<Point3<f32>> {
-    if let MeshData::Creator(combo) = mesh_data {
-        combo
-            .vertices()
-            .iter()
-            .map(|sep| {
-                Point3::new(
-                    (sep.0)[0] * scale.x,
-                    (sep.0)[1] * scale.y,
-                    (sep.0)[2] * scale.z,
-                )
-            })
-            .collect::<Vec<_>>()
-    } else {
-        error!("MeshData was not of combo type! Not extracting vertices.");
-        vec![]
-    }
 }
 
 /// Calculates in relative time using the internal engine clock.
