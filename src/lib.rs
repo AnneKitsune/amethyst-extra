@@ -1,16 +1,16 @@
 extern crate amethyst;
 #[macro_use]
 extern crate serde;
-extern crate serde_json;
 extern crate ron;
+extern crate serde_json;
 #[macro_use]
 extern crate log;
 extern crate crossterm;
 extern crate dirty;
 extern crate fern;
 pub extern crate partial_function;
-extern crate roman;
 extern crate rand;
+extern crate roman;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -28,11 +28,16 @@ extern crate tokio_executor;
 //pub extern crate ncollide3d as ncollide;
 pub extern crate nphysics_ecs_dumb as nphysics_ecs;
 
-use amethyst::core::nalgebra::{Vector3, Point3, Vector2, Vector4, Isometry3, UnitQuaternion, Quaternion};
 use amethyst::controls::FlyControlTag;
 use amethyst::controls::HideCursor;
 use amethyst::controls::WindowFocus;
-use amethyst::renderer::{MeshData, ActiveCamera, get_camera, TextureMetadata, Texture, ScreenDimensions, PosTex, PngFormat, Mesh, MaterialDefaults, Material, Event, DrawFlat, DeviceEvent, Camera};
+use amethyst::core::nalgebra::{
+    Isometry3, Point3, Quaternion, UnitQuaternion, Vector2, Vector3, Vector4,
+};
+use amethyst::renderer::{
+    get_camera, ActiveCamera, Camera, DeviceEvent, DrawFlat, Event, Material, MaterialDefaults,
+    Mesh, MeshData, PngFormat, PosTex, ScreenDimensions, Texture, TextureMetadata,
+};
 use amethyst::shrev::EventChannel;
 use rand::{thread_rng, Rng};
 
@@ -46,8 +51,11 @@ use amethyst::input::*;
 use amethyst::prelude::*;
 use amethyst::ui::{UiBundle, UiText};
 use amethyst::Result;
-use discord_rpc_client::Client as DiscordClient;
 use dirty::Dirty;
+use discord_rpc_client::Client as DiscordClient;
+use hyper::client::HttpConnector;
+use hyper::{Body, Chunk, Client, Request, Response};
+use hyper_tls::HttpsConnector;
 use partial_function::*;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -65,9 +73,6 @@ use std::sync::{Arc, Mutex};
 use std::thread::{sleep, spawn};
 use std::time::Duration;
 use std::vec::IntoIter;
-use hyper::{Body, Client, Request, Response, Chunk};
-use hyper::client::HttpConnector;
-use hyper_tls::HttpsConnector;
 use tokio::prelude::{Future, Stream};
 use tokio::runtime::Runtime;
 
@@ -76,10 +81,9 @@ use crossterm::cursor::TerminalCursor;
 use crossterm::terminal::{ClearType, Terminal};
 use crossterm::{Crossterm, Screen};
 
-use nphysics_ecs::*;
 use nphysics_ecs::ncollide::query::*;
+use nphysics_ecs::*;
 //use nphysics::{World, Body3d};
-
 
 lazy_static! {
     static ref CROSSTERM: Crossterm = {
@@ -188,7 +192,8 @@ impl AssetLoader {
                             let path = &e.unwrap().path();
                             let tmp = &path.to_str().unwrap()[self.base_path.len()..];
                             AssetLoader::sanitize_path(&tmp)
-                        }).collect(),
+                        })
+                        .collect(),
                 );
             } else {
                 error!(
@@ -349,19 +354,40 @@ mod test {
     #[test]
     fn asset_loader_resolve_unique_other() {
         let asset_loader = load_asset_loader();
-        assert_eq!(asset_loader.resolve_path("config/uniqueother"),Some(format!("{}/test/assets/mod1/config/uniqueother",env!("CARGO_MANIFEST_DIR")).to_string()))
+        assert_eq!(
+            asset_loader.resolve_path("config/uniqueother"),
+            Some(
+                format!(
+                    "{}/test/assets/mod1/config/uniqueother",
+                    env!("CARGO_MANIFEST_DIR")
+                )
+                .to_string()
+            )
+        )
     }
 
     #[test]
     fn asset_loader_resolve_path_override_single() {
         let asset_loader = load_asset_loader();
-        assert_eq!(asset_loader.resolve_path("config/ov1"),Some(format!("{}/test/assets/mod1/config/ov1",env!("CARGO_MANIFEST_DIR")).to_string()))
+        assert_eq!(
+            asset_loader.resolve_path("config/ov1"),
+            Some(format!("{}/test/assets/mod1/config/ov1", env!("CARGO_MANIFEST_DIR")).to_string())
+        )
     }
 
     #[test]
     fn asset_loader_resolve_path_override_all() {
         let asset_loader = load_asset_loader();
-        assert_eq!(asset_loader.resolve_path("config/ovall"),Some(format!("{}/test/assets/mod2/config/ovall",env!("CARGO_MANIFEST_DIR")).to_string()))
+        assert_eq!(
+            asset_loader.resolve_path("config/ovall"),
+            Some(
+                format!(
+                    "{}/test/assets/mod2/config/ovall",
+                    env!("CARGO_MANIFEST_DIR")
+                )
+                .to_string()
+            )
+        )
     }
 
     #[test]
@@ -445,7 +471,8 @@ mod test {
                     message = message,
                     color_reset = "\x1B[0m",
                 ))
-            }).level(log::LevelFilter::Debug)
+            })
+            .level(log::LevelFilter::Debug)
             .chain(fern::Output::call(move |record| {
                 //let color = color_config.get_color(&record.level()).to_fg_str();
                 //println!("\x1B[{}m[{}][{}] {}\x1B[0m",color,record.level(),record.target(),record.args());
@@ -457,7 +484,8 @@ mod test {
                     &format!("{}", record.args()),
                     &input_buf.lock().unwrap(),
                 );
-            })).apply()
+            }))
+            .apply()
             .unwrap_or_else(|_| {
                 error!("Global logger already set, amethyst-extra logger not used!")
             });
@@ -473,6 +501,40 @@ impl AssetToFormat<Mesh> for Mesh{
         ObjFormat
     }
 }*/
+
+pub fn verts_from_mesh_data(mesh_data: &MeshData, scale: &Vector3<f32>) -> Vec<Point3<f32>> {
+    if let MeshData::Creator(combo) = mesh_data {
+        combo
+            .vertices()
+            .iter()
+            .map(|sep| {
+                Point3::new(
+                    (sep.0)[0] * scale.x,
+                    (sep.0)[1] * scale.y,
+                    (sep.0)[2] * scale.z,
+                )
+            })
+            .collect::<Vec<_>>()
+    } else {
+        error!("MeshData was not of combo type! Not extracting vertices.");
+        vec![]
+    }
+}
+
+pub fn avg_float_to_string(value: f32, decimals: u32) -> String {
+    let mult = 10.0_f32.powf(decimals as f32);
+    ((value * mult).ceil() / mult).to_string()
+}
+
+pub fn add_removal_to_entity<T: PartialEq + Clone + Debug>(entity: Entity, id: T, world: &World) {
+    world
+        .write_storage::<Removal<T>>()
+        .insert(entity, Removal::new(id))
+        .expect(&format!(
+            "Failed to insert removalid to entity {:?}.",
+            entity
+        ));
+}
 
 pub fn value_near<B: Add<Output = B> + Sub<Output = B> + PartialOrd + Copy>(
     number: B,
@@ -565,15 +627,16 @@ where
                     if res.is_err() {
                         error!(
                             "Failed to write serialized save data to the file. Error: {:?}",
-                            res.err().expect("unreachable: We know there is an error from the if clause.")
+                            res.err().expect(
+                                "unreachable: We know there is an error from the if clause."
+                            )
                         );
                     }
-                },
+                }
                 Err(e) => {
                     error!(
                         "Failed to create or load the save file \"{}\". Error: {:?}",
-                        &self.save_path,
-                        e
+                        &self.save_path, e
                     );
                 }
             }
@@ -850,16 +913,22 @@ where
         ): Self::SystemData,
     ) {
         let focused = focus.is_focused;
-        let win_events = events.read(&mut self.event_reader.as_mut().unwrap()).collect::<Vec<_>>();
+        let win_events = events
+            .read(&mut self.event_reader.as_mut().unwrap())
+            .collect::<Vec<_>>();
         if !win_events.iter().any(|e| match e {
-            Event::DeviceEvent { event: DeviceEvent::MouseMotion{..},..} => true,
+            Event::DeviceEvent {
+                event: DeviceEvent::MouseMotion { .. },
+                ..
+            } => true,
             _ => false,
         }) {
             // Patch until we have physics constraints
             for (rotation_control, parent) in (&rotation_controls, &parents).join() {
                 // Player collider
                 if let Some(tr) = transforms.get_mut(parent.entity) {
-                    *tr.rotation_mut() = UnitQuaternion::from_euler_angles(0.0, rotation_control.mouse_accum_x, 0.0);
+                    *tr.rotation_mut() =
+                        UnitQuaternion::from_euler_angles(0.0, rotation_control.mouse_accum_x, 0.0);
                 }
             }
         } else {
@@ -867,22 +936,33 @@ where
                 if focused && hide.hide {
                     if let Event::DeviceEvent { ref event, .. } = *event {
                         if let DeviceEvent::MouseMotion { delta: (x, y) } = *event {
-
                             // camera
-                            for (entity, mut rotation_control, parent) in (&*entities, &mut rotation_controls, &parents).join()
+                            for (entity, mut rotation_control, parent) in
+                                (&*entities, &mut rotation_controls, &parents).join()
                             {
                                 rotation_control.mouse_accum_x -= x as f32 * self.sensitivity_x;
                                 rotation_control.mouse_accum_y -= y as f32 * self.sensitivity_y;
                                 // Limit maximum vertical angle to prevent locking the quaternion and/or going upside down.
                                 // rotation_control.mouse_accum_y = rotation_control.mouse_accum_y.max(-89.5).min(89.5);
-                                rotation_control.mouse_accum_y = rotation_control.mouse_accum_y.max(-std::f64::consts::FRAC_PI_2 as f32+0.001).min(std::f64::consts::FRAC_PI_2 as f32-0.001);
-                                // Camera 
+                                rotation_control.mouse_accum_y = rotation_control
+                                    .mouse_accum_y
+                                    .max(-std::f64::consts::FRAC_PI_2 as f32 + 0.001)
+                                    .min(std::f64::consts::FRAC_PI_2 as f32 - 0.001);
+                                // Camera
                                 if let Some(tr) = transforms.get_mut(entity) {
-                                    *tr.rotation_mut() = UnitQuaternion::from_euler_angles(rotation_control.mouse_accum_y, 0.0, 0.0);
+                                    *tr.rotation_mut() = UnitQuaternion::from_euler_angles(
+                                        rotation_control.mouse_accum_y,
+                                        0.0,
+                                        0.0,
+                                    );
                                 }
                                 // Player collider
                                 if let Some(tr) = transforms.get_mut(parent.entity) {
-                                    *tr.rotation_mut() = UnitQuaternion::from_euler_angles(0.0, rotation_control.mouse_accum_x, 0.0);
+                                    *tr.rotation_mut() = UnitQuaternion::from_euler_angles(
+                                        0.0,
+                                        rotation_control.mouse_accum_x,
+                                        0.0,
+                                    );
                                 }
                             }
                         }
@@ -898,7 +978,7 @@ where
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, new,)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, new)]
 pub struct Grounded {
     #[new(value = "false")]
     pub ground: bool,
@@ -954,7 +1034,9 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
         (entities, transforms, mut grounded, objecttypes, time, contacts, colliders, ground_checks): Self::SystemData,
     ) {
         //let down = -Vector3::<f32>::y();
-        for (entity, transform2, player_collider, mut grounded) in (&*entities, &transforms, &colliders, &mut grounded).join() {
+        for (entity, transform2, player_collider, mut grounded) in
+            (&*entities, &transforms, &colliders, &mut grounded).join()
+        {
             //let mut ground = false;
 
             /*let ray = Ray3::new(Point3::from_vec(transform.translation), down);
@@ -1026,20 +1108,33 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
             }*/
 
             if let Some(secondary) = grounded.watch_entity {
-                let transform = transforms.get(secondary).expect("No transform component on secondary collider.");
-                let feet_collider = colliders.get(secondary).expect("No collider component on secondary collider.");
-                info!("Gonna check for collision at player pos {:?}", transform.translation());
+                let transform = transforms
+                    .get(secondary)
+                    .expect("No transform component on secondary collider.");
+                let feet_collider = colliders
+                    .get(secondary)
+                    .expect("No collider component on secondary collider.");
+                info!(
+                    "Gonna check for collision at player pos {:?}",
+                    transform.translation()
+                );
 
-                let ground = (&*entities, &transforms, &colliders, &ground_checks).join().any(|(entity, tr, collider, _)| {
-                    if let Proximity::Intersecting = proximity(&transform.isometry(), &*feet_collider.shape, &tr.isometry(), &*collider.shape, 0.0) {
-                        warn!("COLLISION!!!");
-                        true
-                    } else {
-                        false
-                    }
-                });
-
-
+                let ground = (&*entities, &transforms, &colliders, &ground_checks)
+                    .join()
+                    .any(|(entity, tr, collider, _)| {
+                        if let Proximity::Intersecting = proximity(
+                            &transform.isometry(),
+                            &*feet_collider.shape,
+                            &tr.isometry(),
+                            &*collider.shape,
+                            0.0,
+                        ) {
+                            warn!("COLLISION!!!");
+                            true
+                        } else {
+                            false
+                        }
+                    });
 
                 if ground && !grounded.ground {
                     // Just grounded
@@ -1058,28 +1153,26 @@ impl Component for UprightTag {
     type Storage = DenseVecStorage<Self>;
 }
 
-
 /// BROKEN, DO NOT USE
 #[derive(Default, new)]
 pub struct ForceUprightSystem;
 
 impl<'a> System<'a> for ForceUprightSystem {
-    type SystemData = (
-        WriteStorage<'a, Transform>,
-        ReadStorage<'a, UprightTag>,
-    );
+    type SystemData = (WriteStorage<'a, Transform>, ReadStorage<'a, UprightTag>);
 
     fn run(&mut self, (mut transforms, uprights): Self::SystemData) {
-        (&mut transforms, &uprights).join().map(|t| t.0).for_each(|tr| {
-            // roll, pitch, yaw
-            let angles = tr.rotation().euler_angles();
-            info!("Force upright angles: {:?}",angles);
-            let new_quat = UnitQuaternion::from_euler_angles(0.0, angles.1, 0.0);
-            *tr.rotation_mut() = new_quat;
-        });
+        (&mut transforms, &uprights)
+            .join()
+            .map(|t| t.0)
+            .for_each(|tr| {
+                // roll, pitch, yaw
+                let angles = tr.rotation().euler_angles();
+                info!("Force upright angles: {:?}", angles);
+                let new_quat = UnitQuaternion::from_euler_angles(0.0, angles.1, 0.0);
+                *tr.rotation_mut() = new_quat;
+            });
     }
 }
-
 
 #[derive(Default, new)]
 pub struct Jump {
@@ -1104,7 +1197,6 @@ impl Component for Jump {
     type Storage = DenseVecStorage<Self>;
 }
 
-
 #[derive(Default)]
 pub struct JumpSystem {
     /// The last time the system considered a valid jump input.
@@ -1128,7 +1220,7 @@ impl<'a> System<'a> for JumpSystem {
     fn run(
         &mut self,
         (entities, mut grounded, mut jumps, time, input, mut rigid_bodies): Self::SystemData,
-){
+    ) {
         if let Some(true) = input.action_is_down("jump") {
             if !self.input_hold {
                 // We just started pressing the key. Registering time.
@@ -1136,9 +1228,7 @@ impl<'a> System<'a> for JumpSystem {
                 self.input_hold = true;
             }
 
-            for (entity, mut jump, mut rb) in
-                (&*entities, &mut jumps, &mut rigid_bodies).join()
-            {
+            for (entity, mut jump, mut rb) in (&*entities, &mut jumps, &mut rigid_bodies).join() {
                 if let DynamicBody::RigidBody(ref mut rb) = &mut rb {
                     // Holding the jump key on a non-auto jump controller.
                     if self.input_hold && !jump.auto_jump {
@@ -1146,7 +1236,8 @@ impl<'a> System<'a> for JumpSystem {
                     }
 
                     // The last time we jumped wasn't long enough ago
-                    if time.absolute_time_seconds() - self.last_logical_press < jump.input_cooldown {
+                    if time.absolute_time_seconds() - self.last_logical_press < jump.input_cooldown
+                    {
                         continue;
                     }
                     self.last_logical_press = time.absolute_time_seconds();
@@ -1177,7 +1268,8 @@ impl<'a> System<'a> for JumpSystem {
                         };
 
                         if !jump.absolute {
-                            rb.velocity.linear += Vector3::<f32>::y() * jump.jump_force * multiplier;
+                            rb.velocity.linear +=
+                                Vector3::<f32>::y() * jump.jump_force * multiplier;
                         } else {
                             let (x, z) = {
                                 let v = rb.velocity.linear;
@@ -1226,7 +1318,6 @@ pub struct BhopMovement3D {
 impl Component for BhopMovement3D {
     type Storage = DenseVecStorage<Self>;
 }
-
 
 /// The system that manages the first person movements (with added projection acceleration capabilities).
 /// Generic parameters are the parameters for the InputHandler.
@@ -1336,7 +1427,6 @@ pub struct GroundFriction3D {
 impl Component for GroundFriction3D {
     type Storage = DenseVecStorage<Self>;
 }
-
 
 /// Applies friction (slows the velocity down) according to the `GroundFriction3D` component of your entity.
 /// Your entity also needs to have a `Grounded` component (and the `GroundCheckerSystem` added to your dispatcher) to detect the ground.
@@ -1458,14 +1548,13 @@ impl Component for NavigationButton{
     type Storage = VecStorage<Self>;
 }*/
 
-
 /// Discord Rich Presence wrapper around discord_rpc_client
 /// Currently errors are not exposed by the library, so I use the log crate
 /// to display errors and only return Result<T, ()> from the methods.
-/// 
+///
 /// Make sure to properly create your app here: https://discordapp.com/developers/applications
-/// 
-/// Usage: 
+///
+/// Usage:
 /// ```rs
 /// fn init_discord_rich_presence() -> Result<DiscordRichPresence,()> {
 ///     DiscordRichPresence::new(498979571933380609, "Main Menu", Some("large_image"), Some("Hoppin World"), None, None);
@@ -1481,12 +1570,14 @@ pub struct DiscordRichPresence {
 }
 
 impl DiscordRichPresence {
-    pub fn new(app_id: u64,
+    pub fn new(
+        app_id: u64,
         state: String,
         large_image: Option<String>,
         large_image_text: Option<String>,
         small_image: Option<String>,
-        small_image_text: Option<String>) -> std::result::Result<Self,()> {
+        small_image_text: Option<String>,
+    ) -> std::result::Result<Self, ()> {
         let mut rpc = DiscordClient::new(app_id);
         if let Err(e) = rpc {
             error!("Failed to create discord rich presence client: {:?}", e);
@@ -1510,9 +1601,8 @@ impl DiscordRichPresence {
     }
 
     pub fn update(&mut self) {
-        if let Err(e) = self.rpc.lock().unwrap().set_activity(|a| 
-            a.state(self.state.clone())
-            .assets(|ass| {
+        if let Err(e) = self.rpc.lock().unwrap().set_activity(|a| {
+            a.state(self.state.clone()).assets(|ass| {
                 let mut tmp = ass;
                 if let Some(ref t) = self.large_image {
                     tmp = tmp.large_image(t.clone());
@@ -1528,7 +1618,7 @@ impl DiscordRichPresence {
                 }
                 tmp
             })
-        ){
+        }) {
             error!("Failed to set discord rich presence state: {}", e);
         }
     }
@@ -1564,17 +1654,20 @@ pub fn post_json(url: String, data: String) -> Request<Body> {
 pub fn post_json_typed<T: Serialize>(url: String, data: T) -> Request<Body> {
     Request::post(&url)
         .header("Content-Type", "application/json")
-        .body(Body::from(serde_json::to_string(&data).expect("Failed to serialize data to json for post request creation.")))
+        .body(Body::from(serde_json::to_string(&data).expect(
+            "Failed to serialize data to json for post request creation.",
+        )))
         .expect("Failed to create post `Request`")
 }
 
-pub fn exec_http_request(client: &Client<HttpsConnector<HttpConnector>, Body>,
+pub fn exec_http_request(
+    client: &Client<HttpsConnector<HttpConnector>, Body>,
     request: Request<Body>,
     future_runtime: &mut Runtime,
     callback_queue: &CallbackQueue,
     on_success: Box<Fn(Response<Body>) -> Box<Fn(&mut World) + Send> + Send>,
-    on_error: Box<Fn(hyper::Error) -> Box<Fn(&mut World) + Send> + Send>
-    ) {
+    on_error: Box<Fn(hyper::Error) -> Box<Fn(&mut World) + Send> + Send>,
+) {
     let send_handle1 = callback_queue.send_handle();
     let send_handle2 = callback_queue.send_handle();
     let future = client
@@ -1614,11 +1707,15 @@ pub fn exec_http_request(client: &Client<HttpsConnector<HttpConnector>, Body>,
 /// Warning: Blocks the thread in which it is called until the stream has been fully consumed.
 /// Avoid using with file downloads.
 /// This will only return the first parse error instead of all of them, because its easier to use that way.
-pub fn response_to_chunks(response: Response<Body>) -> Vec<std::result::Result<Chunk, hyper::Error>> {
+pub fn response_to_chunks(
+    response: Response<Body>,
+) -> Vec<std::result::Result<Chunk, hyper::Error>> {
     response.into_body().wait().collect::<Vec<_>>()
 }
 
-pub fn parse_chunk<T: DeserializeOwned>(chunk: &Chunk) -> std::result::Result<T, serde_json::Error> {
+pub fn parse_chunk<T: DeserializeOwned>(
+    chunk: &Chunk,
+) -> std::result::Result<T, serde_json::Error> {
     serde_json::from_slice::<T>(&chunk)
 }
 
@@ -1639,13 +1736,13 @@ pub fn verts_from_mesh_data(mesh_data: &MeshData, scale: &Vector3<f32>) -> Vec<P
                     (sep.0)[1] * scale.y,
                     (sep.0)[2] * scale.z,
                 )
-            }).collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>()
     } else {
         error!("MeshData was not of combo type! Not extracting vertices.");
         vec![]
     }
 }
-
 
 /// Calculates in relative time using the internal engine clock.
 #[derive(Default, Serialize)]
@@ -1677,7 +1774,6 @@ impl RelativeTimer {
     }
 }
 
-
 pub fn sec_to_display(secs: f64, decimals: usize) -> String {
     if secs > -0.00001 && secs < 0.00001 {
         String::from("-")
@@ -1696,9 +1792,9 @@ impl<'a> System<'a> for RelativeTimerSystem {
 }
 
 #[derive(new, Debug, Serialize, Deserialize)]
-pub struct NoClip<T> 
+pub struct NoClip<T>
 where
-    T: Send + Sync + Hash + Eq + Clone + 'static
+    T: Send + Sync + Hash + Eq + Clone + 'static,
 {
     pub toggle_action_key: T,
     #[new(default)]
@@ -1724,9 +1820,9 @@ impl Component for NoClipTag {
 /// When untoggling, deletes the entity and sets the main camera to whatever last one was set as primary.
 /// (including the one changed during the noclipping)
 #[derive(new, Debug, Default)]
-pub struct NoClipToggleSystem<T> 
+pub struct NoClipToggleSystem<T>
 where
-    T: Send + Sync + Hash + Eq + Clone + 'static
+    T: Send + Sync + Hash + Eq + Clone + 'static,
 {
     #[new(default)]
     event_reader: Option<ReaderId<InputEvent<T>>>,
@@ -1750,9 +1846,18 @@ where
 
     fn run(
         &mut self,
-        (entities, events, mut transforms, mut _global_transforms, mut fly_control_tags, mut cameras, mut active_camera, mut noclip_res, mut noclips): Self::SystemData,
+        (
+            entities,
+            events,
+            mut transforms,
+            mut _global_transforms,
+            mut fly_control_tags,
+            mut cameras,
+            mut active_camera,
+            mut noclip_res,
+            mut noclips,
+        ): Self::SystemData,
     ) {
-
         if active_camera.entity != noclip_res.noclip_entity {
             noclip_res.previous_active_camera = active_camera.entity;
         }
@@ -1769,7 +1874,9 @@ where
                             let transform = Transform::default(); // TODO: get global position of current main entity.
                             transforms.insert(entity, transform).unwrap();
                             fly_control_tags.insert(entity, FlyControlTag).unwrap();
-                            cameras.insert(entity, Camera::standard_3d(800.0, 600.0)).unwrap(); // TODO: clone main camera if available.
+                            cameras
+                                .insert(entity, Camera::standard_3d(800.0, 600.0))
+                                .unwrap(); // TODO: clone main camera if available.
                             noclips.insert(entity, NoClipTag).unwrap();
 
                             active_camera.entity = Some(entity);
@@ -1784,7 +1891,7 @@ where
                                 if let Err(err) = entities.delete(entity) {
                                     error!("Noclip is enabled, but there is no noclip entity in the world! {}", err);
                                 }
-                                
+
                                 active_camera.entity = noclip_res.previous_active_camera.clone();
                                 noclip_res.noclip_entity = None;
                             } else {
@@ -1794,22 +1901,25 @@ where
                             noclip_res.active = false;
                         }
                     }
-                },
-                _ => {},
+                }
+                _ => {}
             }
         }
     }
 
     fn setup(&mut self, res: &mut Resources) {
         Self::SystemData::setup(res);
-        self.event_reader = Some(res.fetch_mut::<EventChannel<InputEvent<T>>>().register_reader());
+        self.event_reader = Some(
+            res.fetch_mut::<EventChannel<InputEvent<T>>>()
+                .register_reader(),
+        );
     }
 }
 
 #[derive(new, Debug, Serialize, Deserialize)]
-pub struct ManualTimeControl<T> 
+pub struct ManualTimeControl<T>
 where
-    T: Send + Sync + Hash + Eq + Clone + 'static
+    T: Send + Sync + Hash + Eq + Clone + 'static,
 {
     pub play_action_key: T,
     pub stop_action_key: T,
@@ -1818,9 +1928,9 @@ where
 }
 
 #[derive(new, Debug, Default)]
-pub struct ManualTimeControlSystem<T> 
+pub struct ManualTimeControlSystem<T>
 where
-    T: Send + Sync + Hash + Eq + Clone + 'static
+    T: Send + Sync + Hash + Eq + Clone + 'static,
 {
     #[new(default)]
     event_reader: Option<ReaderId<InputEvent<T>>>,
@@ -1836,10 +1946,7 @@ where
         ReadExpect<'a, ManualTimeControl<T>>,
     );
 
-    fn run(
-        &mut self,
-        (mut time, events, time_control): Self::SystemData,
-    ) {
+    fn run(&mut self, (mut time, events, time_control): Self::SystemData) {
         for event in events.read(&mut self.event_reader.as_mut().unwrap()) {
             match event {
                 InputEvent::ActionPressed(key) => {
@@ -1854,18 +1961,20 @@ where
                         let time_scale = time.time_scale();
                         time.set_time_scale(time_scale * 2.0);
                     }
-                },
-                _ => {},
+                }
+                _ => {}
             }
         }
     }
 
     fn setup(&mut self, res: &mut Resources) {
         Self::SystemData::setup(res);
-        self.event_reader = Some(res.fetch_mut::<EventChannel<InputEvent<T>>>().register_reader());
+        self.event_reader = Some(
+            res.fetch_mut::<EventChannel<InputEvent<T>>>()
+                .register_reader(),
+        );
     }
 }
-
 
 pub struct Tiered<T> {
     pub tier: u32,
@@ -1897,9 +2006,7 @@ pub struct ItemInstance<K> {
     pub durability: Option<u32>,
 }
 
-pub trait Stat {
-
-}
+pub trait Stat {}
 
 // StatEffector = Effect
 
@@ -1910,7 +2017,7 @@ pub struct EffectDefinition<K> {
 }
 
 pub struct EffectInstance<K> {
-    pub effector: K
+    pub effector: K,
 }
 
 // Stat of T driving a transition of T to T'
@@ -1947,7 +2054,6 @@ pub fn number_to_roman(n: u32) -> Option<String> {
     roman::to(n as i32)
 }
 
-
 pub struct User {
     pub id: i32,
     pub name: String,
@@ -1956,19 +2062,15 @@ pub struct User {
 pub struct UserGroup {
     pub id: u32,
     pub users: Vec<i32>,
-
 }
 
 pub struct Faction {
     // minecraft-like faction system
 }
 
-pub struct LandClaim {
-
-}
+pub struct LandClaim {}
 
 // Building parts + logic
-
 
 /*
 Mock data
@@ -1997,7 +2099,6 @@ Greater Mana pendant (Capacity Enchant):
     Capacity Enchant (+20 max mana)
 
 */
-
 
 /*
   2D controllers
