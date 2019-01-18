@@ -550,11 +550,6 @@ pub struct Music {
     pub music: Cycle<IntoIter<SourceHandle>>,
 }
 
-/*pub fn build_amethyst(game_data_builder: GameDataBuilder<'static,'static>, init_state: State<GameData<'static,'static>>) -> Result<Application<GameData<'static,'static>>>{
-    let resources_directory = format!("{}/assets/base", env!("CARGO_MANIFEST_DIR"));
-    let game_data = game_data_builder.build()?;
-    Application::build(resources_directory, init_state)?.build(game_data)
-}*/
 
 /// If the tracked resource changes, this will be checked to make sure it is a proper time to save.
 pub trait ShouldSave {
