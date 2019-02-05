@@ -851,9 +851,7 @@ where
             for (transform, tag, mut rb) in (&transforms, &tags, &mut rigid_bodies).join() {
                 let mut dir: Vector3<f32> = transform.rotation() * dir;
                 dir = dir.normalize();
-                if let DynamicBody::RigidBody(ref mut rb) = &mut rb {
-                    rb.velocity.linear += dir * tag.speed * time.delta_seconds();
-                }
+                rb.velocity.linear += dir * tag.speed * time.delta_seconds();
             }
         }
     }
@@ -1226,58 +1224,56 @@ impl<'a> System<'a> for JumpSystem {
             }
 
             for (entity, mut jump, mut rb) in (&*entities, &mut jumps, &mut rigid_bodies).join() {
-                if let DynamicBody::RigidBody(ref mut rb) = &mut rb {
-                    // Holding the jump key on a non-auto jump controller.
-                    if self.input_hold && !jump.auto_jump {
-                        continue;
-                    }
+                // Holding the jump key on a non-auto jump controller.
+                if self.input_hold && !jump.auto_jump {
+                    continue;
+                }
 
-                    // The last time we jumped wasn't long enough ago
-                    if time.absolute_time_seconds() - self.last_logical_press < jump.input_cooldown
-                    {
-                        continue;
-                    }
-                    self.last_logical_press = time.absolute_time_seconds();
+                // The last time we jumped wasn't long enough ago
+                if time.absolute_time_seconds() - self.last_logical_press < jump.input_cooldown
+                {
+                    continue;
+                }
+                self.last_logical_press = time.absolute_time_seconds();
 
-                    // If we need to check for it, verify that we are on the ground.
-                    let mut grounded_since = time.absolute_time_seconds();
-                    if jump.check_ground {
-                        if let Some(ground) = grounded.get(entity) {
-                            if !ground.ground {
-                                continue;
-                            }
-                            grounded_since = ground.since;
-                        } else {
+                // If we need to check for it, verify that we are on the ground.
+                let mut grounded_since = time.absolute_time_seconds();
+                if jump.check_ground {
+                    if let Some(ground) = grounded.get(entity) {
+                        if !ground.ground {
                             continue;
                         }
+                        grounded_since = ground.since;
+                    } else {
+                        continue;
                     }
+                }
 
-                    if time.absolute_time_seconds() - jump.last_jump > jump.jump_cooldown {
-                        // Jump!
-                        jump.last_jump = time.absolute_time_seconds();
-                        // Offset for jump. Positive = time when we jumped AFTER we hit the ground.
-                        jump.last_jump_offset = grounded_since - self.last_physical_press;
+                if time.absolute_time_seconds() - jump.last_jump > jump.jump_cooldown {
+                    // Jump!
+                    jump.last_jump = time.absolute_time_seconds();
+                    // Offset for jump. Positive = time when we jumped AFTER we hit the ground.
+                    jump.last_jump_offset = grounded_since - self.last_physical_press;
 
-                        let multiplier = if let Some(ref curve) = jump.jump_timing_boost {
-                            curve.eval(jump.last_jump_offset).unwrap_or(1.0)
-                        } else {
-                            1.0
+                    let multiplier = if let Some(ref curve) = jump.jump_timing_boost {
+                        curve.eval(jump.last_jump_offset).unwrap_or(1.0)
+                    } else {
+                        1.0
+                    };
+
+                    if !jump.absolute {
+                        rb.velocity.linear +=
+                            Vector3::<f32>::y() * jump.jump_force * multiplier;
+                    } else {
+                        let (x, z) = {
+                            let v = rb.velocity.linear;
+                            (v.x, v.z)
                         };
-
-                        if !jump.absolute {
-                            rb.velocity.linear +=
-                                Vector3::<f32>::y() * jump.jump_force * multiplier;
-                        } else {
-                            let (x, z) = {
-                                let v = rb.velocity.linear;
-                                (v.x, v.z)
-                            };
-                            rb.velocity.linear = Vector3::new(x, jump.jump_force * multiplier, z);
-                        }
+                        rb.velocity.linear = Vector3::new(x, jump.jump_force * multiplier, z);
                     }
-                    if let Some(ref mut ground) = grounded.get_mut(entity) {
-                        ground.ground = false;
-                    }
+                }
+                if let Some(ref mut ground) = grounded.get_mut(entity) {
+                    ground.ground = false;
                 }
             }
         } else {
@@ -1353,46 +1349,44 @@ where
             for (transform, movement, grounded, mut rb) in
                 (&transforms, &movements, &groundeds, &mut rigid_bodies).join()
             {
-                if let DynamicBody::RigidBody(ref mut rb) = &mut rb {
-                    let (acceleration, max_velocity) = if grounded.ground {
-                        (movement.accelerate_ground, movement.max_velocity_ground)
-                    } else {
-                        (movement.accelerate_air, movement.max_velocity_air)
-                    };
+                let (acceleration, max_velocity) = if grounded.ground {
+                    (movement.accelerate_ground, movement.max_velocity_ground)
+                } else {
+                    (movement.accelerate_air, movement.max_velocity_air)
+                };
 
-                    // Global to local coords.
-                    let relative = transform.rotation().inverse() * rb.velocity.linear;
+                // Global to local coords.
+                let relative = transform.rotation().inverse() * rb.velocity.linear;
 
-                    let new_vel_rel = if movement.absolute {
-                        // Absolute = We immediately set the maximum velocity without checking the max speed.
-                        Vector3::new(input.x * acceleration, relative.y, input.y * acceleration)
-                    } else {
-                        let mut wish_vel = relative;
+                let new_vel_rel = if movement.absolute {
+                    // Absolute = We immediately set the maximum velocity without checking the max speed.
+                    Vector3::new(input.x * acceleration, relative.y, input.y * acceleration)
+                } else {
+                    let mut wish_vel = relative;
 
-                        if movement.counter_impulse {
-                            wish_vel = counter_impulse(input, wish_vel);
-                        }
+                    if movement.counter_impulse {
+                        wish_vel = counter_impulse(input, wish_vel);
+                    }
 
-                        wish_vel = accelerate_vector(
-                            time.delta_seconds(),
-                            input,
-                            wish_vel,
-                            acceleration,
-                            max_velocity,
-                        );
-                        if !movement.allow_projection_acceleration {
-                            wish_vel = limit_velocity(wish_vel, max_velocity);
-                        }
+                    wish_vel = accelerate_vector(
+                        time.delta_seconds(),
+                        input,
+                        wish_vel,
+                        acceleration,
+                        max_velocity,
+                    );
+                    if !movement.allow_projection_acceleration {
+                        wish_vel = limit_velocity(wish_vel, max_velocity);
+                    }
 
-                        wish_vel
-                    };
+                    wish_vel
+                };
 
-                    // Global to local coords;
-                    let new_vel = transform.rotation() * new_vel_rel;
+                // Global to local coords;
+                let new_vel = transform.rotation() * new_vel_rel;
 
-                    // Assign the new velocity to the player
-                    rb.velocity.linear = new_vel;
-                }
+                // Assign the new velocity to the player
+                rb.velocity.linear = new_vel;
             }
         }
     }
@@ -1446,32 +1440,30 @@ impl<'a> System<'a> for GroundFrictionSystem {
             v - friction
         }
         for (grounded, friction, mut rb) in (&groundeds, &frictions, &mut rigid_bodies).join() {
-            if let DynamicBody::RigidBody(ref mut rb) = &mut rb {
-                if grounded.ground
-                    && time.absolute_time_seconds() - grounded.since
-                        >= friction.ground_time_before_apply
-                {
-                    let (x, y, z) = {
-                        let v = rb.velocity.linear;
-                        (v.x, v.y, v.z)
-                    };
-                    match friction.friction_mode {
-                        FrictionMode::Linear => {
-                            let slowdown = friction.friction * time.delta_seconds();
-                            rb.velocity.linear = Vector3::new(
-                                apply_friction_single(x, slowdown),
-                                y,
-                                apply_friction_single(z, slowdown),
-                            );
-                        }
-                        FrictionMode::Percent => {
-                            let coef = friction.friction * time.delta_seconds();
-                            rb.velocity.linear = Vector3::new(
-                                apply_friction_single(x, x * coef),
-                                y,
-                                apply_friction_single(z, z * coef),
-                            );
-                        }
+            if grounded.ground
+                && time.absolute_time_seconds() - grounded.since
+                    >= friction.ground_time_before_apply
+            {
+                let (x, y, z) = {
+                    let v = rb.velocity.linear;
+                    (v.x, v.y, v.z)
+                };
+                match friction.friction_mode {
+                    FrictionMode::Linear => {
+                        let slowdown = friction.friction * time.delta_seconds();
+                        rb.velocity.linear = Vector3::new(
+                            apply_friction_single(x, slowdown),
+                            y,
+                            apply_friction_single(z, slowdown),
+                        );
+                    }
+                    FrictionMode::Percent => {
+                        let coef = friction.friction * time.delta_seconds();
+                        rb.velocity.linear = Vector3::new(
+                            apply_friction_single(x, x * coef),
+                            y,
+                            apply_friction_single(z, z * coef),
+                        );
                     }
                 }
             }
