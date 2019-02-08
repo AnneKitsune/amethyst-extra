@@ -177,7 +177,7 @@ impl AssetLoader {
     fn resolve_path_for_pack(&self, path: &str, pack: &str) -> Option<String> {
         let mut abs = self.base_path.to_owned() + "/" + pack + "/" + &path.to_owned();
         if cfg!(windows) {
-            abs = abs.replace("/", "\\");
+            abs = abs.replace("/", "\\").replace("\\\\?\\", "");
         }
 
         let path = Path::new(&abs);
