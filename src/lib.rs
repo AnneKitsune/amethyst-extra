@@ -143,7 +143,12 @@ impl AssetLoader {
         let mut chars = path.chars();
         let first = chars.next().expect("An empty path was specified!");
         let last = chars.last().unwrap();
+        out = out.replace("\\", "/").replace("\\\\", "/");
         if first == '/' {
+            out.remove(0);
+        }
+        if out.chars().next().unwrap() == '?' {
+            out.remove(0);
             out.remove(0);
         }
         if last == '/' {
