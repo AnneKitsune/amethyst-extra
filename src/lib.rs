@@ -1714,9 +1714,20 @@ pub fn parse_chunk<T: DeserializeOwned>(
 }
 
 /// Super simplistic token-based authentification.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 pub struct Auth {
     pub token: String,
+    pub validated: bool,
+    pub updated: bool,
+}
+
+impl ShouldSave for Auth {
+    fn save_ready(&self) -> bool{
+        self.updated
+    }
+    fn set_save_ready(&mut self, ready: bool){
+        self.updated = ready;
+    }
 }
 
 /// Calculates in relative time using the internal engine clock.
@@ -2022,28 +2033,90 @@ pub struct SkillInstance<K> {
 pub type ItemDefinitionRepository<K> = HashMap<K, ItemDefinition<K>>;
 
 pub struct Inventory<K> {
-    content: Vec<ItemInstance<K>>, // usually Stacked<T>
+    pub content: Vec<ItemInstance<K>>, // usually Stacked<T>
 }
 
 pub fn number_to_roman(n: u32) -> Option<String> {
     roman::to(n as i32)
 }
 
-pub struct User {
-    pub id: i32,
-    pub name: String,
+pub type FactionResult = std::result::Result<(), FactionError>;
+
+#[derive(Debug)]
+pub enum FactionError {
+    NotEnoughPower,
+    Unclaimable,
+    PvpDenied,
+    UseDenied,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, new)]
+pub struct User<T> {
+    pub id: i32,
+    pub name: String,
+    pub data: T,
+}
+
+/// Clan
 pub struct UserGroup {
-    pub id: u32,
+    pub id: i32,
     pub users: Vec<i32>,
+}
+
+pub struct UserGroupSettings {
+    pub maximum_users: i32,
+    pub friendly_fire: bool,
 }
 
 pub struct Faction {
     // minecraft-like faction system
+    pub users: UserGroup,
+    pub power: f32,
+    pub claims: Vec<(i32, i32, i32)>,
+    pub power_boost: f32,
 }
 
-pub struct LandClaim {}
+impl Faction {
+    pub fn claim_from(&mut self, other: &mut Faction, settings: &FactionSettings) -> FactionResult {
+
+        Ok(())
+    }
+}
+
+pub struct FactionSettings {
+    pub user_settings: UserGroupSettings,
+    pub maximum_player_power: f32,
+    pub flags: FactionFlags,
+}
+
+pub struct FactionFlags {
+    pub claimable: bool,
+    pub pvp_enabled: bool,
+    pub power_loss_in_territory: bool,
+    pub power_gain_in_territory: bool,
+    /// If true, will not destroy the faction once all players leaved.
+    pub permanent: bool,
+}
+
+pub type FactionRepository = Vec<Faction>;
+pub type UserRepository<T> = Vec<User<T>>;
+
+pub struct LandClaimSettings {
+    pub claim_size: Vector3<f32>,
+}
+
+impl LandClaimSettings {
+    pub fn claim_id_from_position(&self, pos: &[f32;3]) -> (i32, i32, i32) {
+        let x = pos[0] / self.claim_size.x;
+        let y = pos[1] / self.claim_size.y;
+        let z = if self.claim_size.z != 0.0 {
+            pos[2] / self.claim_size.z
+        } else {
+            0.0
+        };
+        (x as i32, y as i32, z as i32)
+    }
+}
 
 // Building parts + logic
 
