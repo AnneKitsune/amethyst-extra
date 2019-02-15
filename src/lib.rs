@@ -5,11 +5,11 @@ extern crate ron;
 extern crate serde_json;
 #[macro_use]
 extern crate log;
-extern crate crossterm;
-extern crate dirty;
+pub extern crate crossterm;
+pub extern crate dirty;
 extern crate fern;
 pub extern crate partial_function;
-extern crate rand;
+pub extern crate rand;
 extern crate roman;
 #[macro_use]
 extern crate lazy_static;
