@@ -36,7 +36,7 @@ roman = "0.1.6"
 #ncollide3d = "0.17.3"
 
 #nphysics-ecs-dumb = { git = "https://github.com/jojolepro/nphysics-ecs-dumb", branch = "changes" }
-nphysics-ecs-dumb = { git = "https://github.com/jojolepro/nphysics-ecs-dumb", branch = "timestepdbg" }
+nphysics-ecs-dumb = { git = "https://github.com/jojolepro/nphysics-ecs-dumb", branch = "collisionperf" }
 
 hyper = "0.12.11"
 hyper-tls = "0.3.1"
