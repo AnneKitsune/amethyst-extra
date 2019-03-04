@@ -15,7 +15,6 @@ extern crate roman;
 extern crate lazy_static;
 #[macro_use]
 extern crate derive_new;
-#[macro_use]
 extern crate discord_rpc_client;
 pub extern crate hyper;
 pub extern crate hyper_tls;
@@ -33,6 +32,7 @@ mod noclip;
 mod relative_timer;
 mod time_control;
 mod ui_timer;
+mod movement;
 
 pub use self::asset_loader::*;
 pub use self::auth::*;
@@ -44,64 +44,60 @@ pub use self::noclip::*;
 pub use self::relative_timer::*;
 pub use self::time_control::*;
 pub use self::ui_timer::*;
+pub use self::movement::*;
 
-use amethyst::controls::FlyControlTag;
-use amethyst::controls::HideCursor;
-use amethyst::controls::WindowFocus;
+
+
+
 use amethyst::core::nalgebra::{
-    Isometry3, Point3, Quaternion, UnitQuaternion, Vector2, Vector3, Vector4,
+    Point3, Vector3
 };
-use amethyst::renderer::{
-    get_camera, ActiveCamera, Camera, DeviceEvent, DrawFlat, Event, Material, MaterialDefaults,
-    Mesh, MeshData, PngFormat, PosTex, ScreenDimensions, Texture, TextureMetadata,
-};
-use amethyst::shrev::EventChannel;
-use rand::{thread_rng, Rng};
+use amethyst::renderer::MeshData;
 
-use amethyst::animation::AnimationBundle;
-use amethyst::assets::*;
-use amethyst::audio::{AudioBundle, SourceHandle};
-use amethyst::core::timing::Time;
-use amethyst::core::*;
+
+
+
+
+
 use amethyst::ecs::*;
-use amethyst::input::*;
+
 use amethyst::prelude::*;
-use amethyst::ui::{UiBundle, UiText};
+
 use amethyst::utils::removal::Removal;
-use amethyst::Result;
-use dirty::Dirty;
+
+
 use discord_rpc_client::Client as DiscordClient;
 use hyper::client::HttpConnector;
 use hyper::{Body, Chunk, Client, Request, Response};
 use hyper_tls::HttpsConnector;
-use partial_function::*;
+
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use std::collections::HashMap;
-use std::fs;
-use std::fs::File;
-use std::hash::Hash;
-use std::io::Read as IORead;
-use std::io::Write as IOWrite;
-use std::iter::Cycle;
-use std::marker::PhantomData;
+
+
+
+
+
+
+
+
 use std::ops::{Add, Sub};
 use std::fmt::Debug;
-use std::path::Path;
+
 use std::sync::{Arc, Mutex};
-use std::thread::{sleep, spawn};
-use std::time::Duration;
-use std::vec::IntoIter;
+
+
+
 use tokio::prelude::{Future, Stream};
 use tokio::runtime::Runtime;
 
-use crossterm::cursor::TerminalCursor;
-//use crossterm::screen::RawScreen;
-use crossterm::terminal::{ClearType, Terminal};
-use crossterm::{Crossterm, Screen};
 
-use nphysics_ecs::ncollide::query::*;
-use nphysics_ecs::*;
+//use crossterm::screen::RawScreen;
+
+
+
+
+
 //use nphysics::{World, Body3d};
 
 /*pub trait AssetToFormat<T> where T: Sized{

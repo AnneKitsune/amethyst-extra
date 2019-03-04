@@ -1,3 +1,52 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+use crossterm::*;
+
+//use crossterm::screen::RawScreen;
+
+
+
+
+
 lazy_static! {
     static ref CROSSTERM: Crossterm = {
         let mut screen = Screen::new(true);
@@ -8,7 +57,52 @@ lazy_static! {
 
 #[cfg(test)]
 mod test {
-    use crate::*;
+    use crate::terminal::*;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+use std::io::Read as IORead;
+
+
+
+
+
+use std::sync::{Arc, Mutex};
+use std::thread::{sleep, spawn};
+use std::time::Duration;
+
+
+
+use crossterm::cursor::TerminalCursor;
+//use crossterm::screen::RawScreen;
+use crossterm::terminal::{ClearType, Terminal};
+
+
+
+
+
 
     #[test]
     pub fn crossterm() {
@@ -19,7 +113,7 @@ mod test {
         let mut input = CROSSTERM.input().read_async().bytes();
 
         let input_buf = Arc::new(Mutex::new(String::new()));
-        let key_buf = [0 as u8; 32];
+        let _key_buf = [0 as u8; 32];
 
         start_logger(input_buf.clone());
 

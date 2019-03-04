@@ -1,3 +1,55 @@
+
+
+
+
+
+use amethyst::shrev::EventChannel;
+
+
+
+
+
+use amethyst::core::timing::Time;
+use amethyst::core::*;
+use amethyst::ecs::*;
+
+
+
+
+
+
+
+
+
+
+
+
+use serde::Serialize;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//use crossterm::screen::RawScreen;
+
+
+
+use nphysics_ecs::ncollide::query::*;
+use nphysics_ecs::*;
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize, new)]
 pub struct Grounded {
     #[new(value = "false")]
@@ -25,8 +77,8 @@ impl Component for GroundCheckTag {
 #[derive(new)]
 pub struct GroundCheckerSystem<T> {
     pub collider_types: Vec<T>,
-    #[new(default)]
-    contact_reader: Option<ReaderId<EntityProximityEvent>>,
+    //#[new(default)]
+    //contact_reader: Option<ReaderId<EntityProximityEvent>>,
 }
 
 impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
@@ -51,10 +103,10 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
 
     fn run(
         &mut self,
-        (entities, transforms, mut grounded, objecttypes, time, contacts, colliders, ground_checks): Self::SystemData,
+        (entities, transforms, mut grounded, _objecttypes, time, _contacts, colliders, ground_checks): Self::SystemData,
     ) {
         //let down = -Vector3::<f32>::y();
-        for (entity, transform2, player_collider, mut grounded) in
+        for (_entity, _transform2, _player_collider, mut grounded) in
             (&*entities, &transforms, &colliders, &mut grounded).join()
         {
             //let mut ground = false;
@@ -141,7 +193,7 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
 
                 let ground = (&*entities, &transforms, &colliders, &ground_checks)
                     .join()
-                    .any(|(entity, tr, collider, _)| {
+                    .any(|(_entity, tr, collider, _)| {
                         if let Proximity::Intersecting = proximity(
                             &transform.isometry(),
                             &*feet_collider.shape,

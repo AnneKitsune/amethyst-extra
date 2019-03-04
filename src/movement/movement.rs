@@ -1,5 +1,54 @@
 
 
+
+use crate::movement::*;
+use amethyst::core::nalgebra::{
+    Vector2, Vector3,
+};
+
+
+
+
+
+
+
+use amethyst::core::timing::Time;
+use amethyst::core::*;
+use amethyst::ecs::*;
+use amethyst::input::*;
+
+
+
+
+
+
+
+
+
+
+
+use serde::Serialize;
+
+
+
+use std::hash::Hash;
+
+
+
+use std::marker::PhantomData;
+
+
+
+
+
+//use crossterm::screen::RawScreen;
+
+
+
+
+use nphysics_ecs::*;
+
+
 #[derive(Debug, Clone, Serialize, Deserialize, new)]
 pub struct FpsMovement {
     /// The movement speed in units per second.
@@ -42,7 +91,7 @@ where
 
         let dir = Vector3::new(x, 0.0, z);
         if dir.magnitude() != 0.0 {
-            for (transform, tag, mut rb) in (&transforms, &tags, &mut rigid_bodies).join() {
+            for (transform, tag, rb) in (&transforms, &tags, &mut rigid_bodies).join() {
                 let mut dir: Vector3<f32> = transform.rotation() * dir;
                 dir = dir.normalize();
                 rb.velocity.linear += dir * tag.speed * time.delta_seconds();

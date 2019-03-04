@@ -1,3 +1,57 @@
+
+
+
+
+
+
+
+
+
+
+
+
+use amethyst::core::timing::Time;
+
+use amethyst::ecs::*;
+
+
+use amethyst::ui::{UiText};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//use crossterm::screen::RawScreen;
+
+
+
+
+
+
 pub struct UiTimer {
     pub start: f64,
 }

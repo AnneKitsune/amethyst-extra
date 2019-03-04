@@ -1,3 +1,58 @@
+
+
+
+use amethyst::core::nalgebra::{
+    Vector2, Vector3
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//use crossterm::screen::RawScreen;
+
+
+
+
+
+
 /// Accelerates the given `relative` vector by the given `acceleration` and `input`.
 /// The `maximum_velocity` is only taken into account for the projection of the acceleration vector on the `relative` vector.
 /// This allows going over the speed limit by performing what is called a "strafe".

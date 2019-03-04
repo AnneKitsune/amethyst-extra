@@ -1,3 +1,58 @@
+
+use crate::auto_save::ShouldSave;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+use serde::Serialize;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//use crossterm::screen::RawScreen;
+
+
+
+
+
+
 /// Super simplistic token-based authentification.
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct Auth {
