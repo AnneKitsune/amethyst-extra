@@ -7,7 +7,7 @@ This library is based on the workflow I use to accelerate prototyping and the ga
 
 Feel free to commit new features you think wouldn't fit in amethyst but would fit well as a complementary feature! :)
 
-##Current features
+## Current features
 
 * User Authentification
 * AssetLoader with modding support
