@@ -44,6 +44,6 @@ hyper-tls = "0.3.1"
 tokio = "0.1.7"
 tokio-executor = "0.1.0"
 
-amethyst = { git = "https://github.com/amethyst/amethyst", branch="master", features = ["nightly"] }
+amethyst = { git = "https://github.com/jojolepro/amethyst", branch="master", features = ["nightly"] }
 #amethyst = { git = "https://github.com/jojolepro/amethyst", branch="activecamera", features = ["nightly"] }
 #amethyst-rhusics = { git = "https://github.com/amethyst/amethyst-rhusics" }
