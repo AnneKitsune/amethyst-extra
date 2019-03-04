@@ -1,57 +1,6 @@
-
 use crate::auto_save::ShouldSave;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use serde::Serialize;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//use crossterm::screen::RawScreen;
-
-
-
-
-
 
 /// Super simplistic token-based authentification.
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -72,7 +21,7 @@ impl Auth {
     pub fn should_validate(&self) -> bool {
         !self.validated && !self.token.is_empty() && !self.validating
     }
-    pub fn set_validating(&mut self){
+    pub fn set_validating(&mut self) {
         self.validating = false;
         self.validating = true;
         self.updated = false;
@@ -92,10 +41,10 @@ impl Auth {
 }
 
 impl ShouldSave for Auth {
-    fn save_ready(&self) -> bool{
+    fn save_ready(&self) -> bool {
         self.updated
     }
-    fn set_save_ready(&mut self, ready: bool){
+    fn set_save_ready(&mut self, ready: bool) {
         self.updated = ready;
     }
 }

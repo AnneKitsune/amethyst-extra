@@ -1,56 +1,6 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use amethyst::ecs::*;
 
-
-
-
-
-
-
-
-
-
-
-
 use serde::Serialize;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//use crossterm::screen::RawScreen;
-
-
-
-
-
 
 // TODO: complete once screen_to_world is merged in amethyst.
 

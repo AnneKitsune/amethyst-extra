@@ -1,55 +1,17 @@
-
 use amethyst::controls::HideCursor;
 use amethyst::controls::WindowFocus;
 use amethyst::core::nalgebra::UnitQuaternion;
-use amethyst::renderer::{
-    DeviceEvent, Event
-};
+use amethyst::renderer::{DeviceEvent, Event};
 use amethyst::shrev::EventChannel;
-
-
-
-
-
 
 use amethyst::core::*;
 use amethyst::ecs::*;
 
-
-
-
-
-
-
-
-
-
-
-
 use serde::Serialize;
-
-
 
 use std::hash::Hash;
 
-
 use std::marker::PhantomData;
-
-
-
-
-
-
-
-
-
-
-//use crossterm::screen::RawScreen;
-
-
-
-
-
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RotationControl {

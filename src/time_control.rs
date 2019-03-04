@@ -1,55 +1,13 @@
-
-
-
-
-
-
 use amethyst::shrev::EventChannel;
-
-
-
-
 
 use amethyst::core::timing::Time;
 
 use amethyst::ecs::*;
 use amethyst::input::*;
 
-
-
-
-
-
-
-
-
-
-
 use serde::Serialize;
 
-
-
 use std::hash::Hash;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//use crossterm::screen::RawScreen;
-
-
-
-
-
 
 #[derive(new, Debug, Serialize, Deserialize)]
 pub struct ManualTimeControl<T>

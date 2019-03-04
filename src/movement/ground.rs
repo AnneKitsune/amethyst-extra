@@ -1,51 +1,10 @@
-
-
-
-
-
 use amethyst::shrev::EventChannel;
-
-
-
-
 
 use amethyst::core::timing::Time;
 use amethyst::core::*;
 use amethyst::ecs::*;
 
-
-
-
-
-
-
-
-
-
-
-
 use serde::Serialize;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//use crossterm::screen::RawScreen;
-
-
 
 use nphysics_ecs::ncollide::query::*;
 use nphysics_ecs::*;
@@ -103,7 +62,16 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
 
     fn run(
         &mut self,
-        (entities, transforms, mut grounded, _objecttypes, time, _contacts, colliders, ground_checks): Self::SystemData,
+        (
+            entities,
+            transforms,
+            mut grounded,
+            _objecttypes,
+            time,
+            _contacts,
+            colliders,
+            ground_checks,
+        ): Self::SystemData,
     ) {
         //let down = -Vector3::<f32>::y();
         for (_entity, _transform2, _player_collider, mut grounded) in

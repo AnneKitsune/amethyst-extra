@@ -1,52 +1,12 @@
-
-
-
 use crate::movement::ground::Grounded;
 use amethyst::core::nalgebra::Vector3;
-
-
-
-
-
-
 
 use amethyst::core::timing::Time;
 
 use amethyst::ecs::*;
 use amethyst::input::*;
 
-
-
-
-
-
-
-
-
 use partial_function::*;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//use crossterm::screen::RawScreen;
-
-
 
 
 use nphysics_ecs::*;
@@ -112,8 +72,7 @@ impl<'a> System<'a> for JumpSystem {
                 }
 
                 // The last time we jumped wasn't long enough ago
-                if time.absolute_time_seconds() - self.last_logical_press < jump.input_cooldown
-                {
+                if time.absolute_time_seconds() - self.last_logical_press < jump.input_cooldown {
                     continue;
                 }
                 self.last_logical_press = time.absolute_time_seconds();
@@ -144,8 +103,7 @@ impl<'a> System<'a> for JumpSystem {
                     };
 
                     if !jump.absolute {
-                        rb.velocity.linear +=
-                            Vector3::<f32>::y() * jump.jump_force * multiplier;
+                        rb.velocity.linear += Vector3::<f32>::y() * jump.jump_force * multiplier;
                     } else {
                         let (x, z) = {
                             let v = rb.velocity.linear;

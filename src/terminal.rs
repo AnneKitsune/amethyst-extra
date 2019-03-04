@@ -1,51 +1,4 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crossterm::*;
-
-//use crossterm::screen::RawScreen;
-
-
-
-
 
 lazy_static! {
     static ref CROSSTERM: Crossterm = {
@@ -59,50 +12,15 @@ lazy_static! {
 mod test {
     use crate::terminal::*;
 
-    
+    use std::io::Read as IORead;
 
+    use std::sync::{Arc, Mutex};
+    use std::thread::{sleep, spawn};
+    use std::time::Duration;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-use std::io::Read as IORead;
-
-
-
-
-
-use std::sync::{Arc, Mutex};
-use std::thread::{sleep, spawn};
-use std::time::Duration;
-
-
-
-use crossterm::cursor::TerminalCursor;
-//use crossterm::screen::RawScreen;
-use crossterm::terminal::{ClearType, Terminal};
-
-
-
-
-
+    use crossterm::cursor::TerminalCursor;
+    //use crossterm::screen::RawScreen;
+    use crossterm::terminal::{ClearType, Terminal};
 
     #[test]
     pub fn crossterm() {

@@ -1,54 +1,11 @@
-
-
-
 use crate::movement::ground::Grounded;
 use amethyst::core::nalgebra::Vector3;
-
-
-
-
-
-
 
 use amethyst::core::timing::Time;
 
 use amethyst::ecs::*;
 
-
-
-
-
-
-
-
-
-
-
-
 use serde::Serialize;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//use crossterm::screen::RawScreen;
-
-
-
 
 use nphysics_ecs::*;
 

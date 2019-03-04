@@ -1,32 +1,9 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use amethyst::ecs::*;
-
-
-
-
 
 use dirty::Dirty;
 
-
-
-
-
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-
 
 use std::fs::File;
 
@@ -34,23 +11,6 @@ use std::io::Read as IORead;
 use std::io::Write as IOWrite;
 
 use std::marker::PhantomData;
-
-
-
-
-
-
-
-
-
-
-
-//use crossterm::screen::RawScreen;
-
-
-
-
-
 
 /// If the tracked resource changes, this will be checked to make sure it is a proper time to save.
 pub trait ShouldSave {

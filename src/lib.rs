@@ -18,53 +18,42 @@ extern crate derive_new;
 extern crate discord_rpc_client;
 pub extern crate hyper;
 pub extern crate hyper_tls;
+pub extern crate nphysics_ecs_dumb as nphysics_ecs;
 extern crate tokio;
 extern crate tokio_executor;
-pub extern crate nphysics_ecs_dumb as nphysics_ecs;
 
 mod asset_loader;
 mod auth;
 mod auto_save;
 mod auto_text;
-mod terminal;
 mod follow_mouse;
+mod movement;
 mod noclip;
 mod relative_timer;
+mod terminal;
 mod time_control;
 mod ui_timer;
-mod movement;
 
 pub use self::asset_loader::*;
 pub use self::auth::*;
 pub use self::auto_save::*;
 pub use self::auto_text::*;
-pub use self::terminal::*;
 pub use self::follow_mouse::*;
+pub use self::movement::*;
 pub use self::noclip::*;
 pub use self::relative_timer::*;
+pub use self::terminal::*;
 pub use self::time_control::*;
 pub use self::ui_timer::*;
-pub use self::movement::*;
 
-
-
-
-use amethyst::core::nalgebra::{
-    Point3, Vector3
-};
+use amethyst::core::nalgebra::{Point3, Vector3};
 use amethyst::renderer::MeshData;
-
-
-
-
-
 
 use amethyst::ecs::*;
 
 use amethyst::prelude::*;
 
 use amethyst::utils::removal::Removal;
-
 
 use discord_rpc_client::Client as DiscordClient;
 use hyper::client::HttpConnector;
@@ -74,29 +63,13 @@ use hyper_tls::HttpsConnector;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-
-
-
-
-
-
-
-use std::ops::{Add, Sub};
 use std::fmt::Debug;
+use std::ops::{Add, Sub};
 
 use std::sync::{Arc, Mutex};
 
-
-
 use tokio::prelude::{Future, Stream};
 use tokio::runtime::Runtime;
-
-
-//use crossterm::screen::RawScreen;
-
-
-
-
 
 //use nphysics::{World, Body3d};
 
@@ -135,13 +108,15 @@ pub fn avg_float_to_string(value: f32, decimals: u32) -> String {
 }
 
 // TODO: remove once merged in amethyst
-pub fn add_removal_to_entity<T: PartialEq + Clone + Debug + Send + Sync + 'static>(entity: Entity, id: T, storage: &mut WriteStorage<Removal<T>>) {
-    storage
-        .insert(entity, Removal::new(id))
-        .expect(&format!(
-            "Failed to insert removalid to entity {:?}.",
-            entity
-        ));
+pub fn add_removal_to_entity<T: PartialEq + Clone + Debug + Send + Sync + 'static>(
+    entity: Entity,
+    id: T,
+    storage: &mut WriteStorage<Removal<T>>,
+) {
+    storage.insert(entity, Removal::new(id)).expect(&format!(
+        "Failed to insert removalid to entity {:?}.",
+        entity
+    ));
 }
 
 pub fn value_near<B: Add<Output = B> + Sub<Output = B> + PartialOrd + Copy>(
@@ -151,7 +126,6 @@ pub fn value_near<B: Add<Output = B> + Sub<Output = B> + PartialOrd + Copy>(
 ) -> bool {
     number >= target - margin && number <= target + margin
 }
-
 
 /*pub struct NavigationButton{
     pub target: fn() -> Trans,
@@ -339,7 +313,6 @@ pub fn sec_to_display(secs: f64, decimals: usize) -> String {
         format!("{:0.*}", decimals, secs)
     }
 }
-
 
 // Building parts + logic
 

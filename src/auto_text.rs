@@ -1,55 +1,8 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use amethyst::ecs::*;
 
-
-use amethyst::ui::{UiText};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+use amethyst::ui::UiText;
 
 use std::marker::PhantomData;
-
-
-
-
-
-
-
-
-
-
-//use crossterm::screen::RawScreen;
-
-
-
-
-
 
 pub trait UiAutoText: Component {
     fn get_text(&self) -> String;

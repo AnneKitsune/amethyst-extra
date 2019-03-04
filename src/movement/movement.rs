@@ -1,53 +1,18 @@
-
-
-
 use crate::movement::*;
-use amethyst::core::nalgebra::{
-    Vector2, Vector3,
-};
-
-
-
-
-
-
+use amethyst::core::nalgebra::{Vector2, Vector3};
 
 use amethyst::core::timing::Time;
 use amethyst::core::*;
 use amethyst::ecs::*;
 use amethyst::input::*;
 
-
-
-
-
-
-
-
-
-
-
 use serde::Serialize;
-
-
 
 use std::hash::Hash;
 
-
-
 use std::marker::PhantomData;
 
-
-
-
-
-//use crossterm::screen::RawScreen;
-
-
-
-
 use nphysics_ecs::*;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, new)]
 pub struct FpsMovement {
