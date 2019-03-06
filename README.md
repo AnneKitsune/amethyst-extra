@@ -1,3 +1,5 @@
+Support what I do on [Patreon](https://www.patreon.com/jojolepro).
+
 # Amethyst Extra
 Extra features for the amethyst engine to help you create games.
 
