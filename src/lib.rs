@@ -111,9 +111,9 @@ pub fn avg_float_to_string(value: f32, decimals: u32) -> String {
 pub fn add_removal_to_entity<T: PartialEq + Clone + Debug + Send + Sync + 'static>(
     entity: Entity,
     id: T,
-    storage: &mut WriteStorage<Removal<T>>,
+    world: &mut World,
 ) {
-    storage.insert(entity, Removal::new(id)).expect(&format!(
+    world.write_storage::<Removal<T>>().insert(entity, Removal::new(id)).expect(&format!(
         "Failed to insert removalid to entity {:?}.",
         entity
     ));
