@@ -1,4 +1,4 @@
-use amethyst::core::nalgebra::UnitQuaternion;
+use amethyst::core::math::UnitQuaternion;
 
 use amethyst::core::*;
 use amethyst::ecs::*;

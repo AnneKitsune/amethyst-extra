@@ -46,7 +46,7 @@ pub use self::terminal::*;
 pub use self::time_control::*;
 pub use self::ui_timer::*;
 
-use amethyst::core::nalgebra::{Point3, Vector3};
+use amethyst::core::math::{Point3, Vector3};
 use amethyst::renderer::MeshData;
 
 use amethyst::ecs::*;

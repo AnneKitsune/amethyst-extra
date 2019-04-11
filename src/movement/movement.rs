@@ -1,5 +1,5 @@
 use crate::movement::*;
-use amethyst::core::nalgebra::{Vector2, Vector3};
+use amethyst::core::math::{Vector2, Vector3};
 
 use amethyst::core::timing::Time;
 use amethyst::core::*;

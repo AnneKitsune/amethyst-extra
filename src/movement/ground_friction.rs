@@ -1,5 +1,5 @@
 use crate::movement::ground::Grounded;
-use amethyst::core::nalgebra::Vector3;
+use amethyst::core::math::Vector3;
 
 use amethyst::core::timing::Time;
 

@@ -1,6 +1,6 @@
 use amethyst::controls::HideCursor;
 use amethyst::controls::WindowFocus;
-use amethyst::core::nalgebra::UnitQuaternion;
+use amethyst::core::math::UnitQuaternion;
 use amethyst::renderer::{DeviceEvent, Event};
 use amethyst::shrev::EventChannel;
 
