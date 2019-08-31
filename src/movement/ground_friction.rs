@@ -46,7 +46,7 @@ impl<'a> System<'a> for GroundFrictionSystem {
         Read<'a, Time>,
         ReadStorage<'a, Grounded>,
         ReadStorage<'a, GroundFriction3D>,
-        WriteStorage<'a, DynamicBody>,
+        WriteStorage<'a, PhysicsBody<f32>>,
     );
 
     fn run(&mut self, (time, groundeds, frictions, mut rigid_bodies): Self::SystemData) {

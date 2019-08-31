@@ -152,20 +152,19 @@ impl AssetLoader {
         &mut self,
         path: &str,
         format: F,
-        options: F::Options,
         ali: &mut AssetLoaderInternal<T>,
         storage: &'a mut AssetStorage<T>,
         loader: &Loader,
     ) -> Option<&'a T>
     where
         T: Asset,
-        F: Format<T> + 'static,
+        F: Format<T::Data> + 'static,
     {
         if let Some(h) = AssetLoader::get_asset_handle::<T>(path, ali) {
             return storage.get(&h);
             //return Some(a);
         }
-        if let Some(h) = self.load::<T, F>(path, format, options, ali, storage, loader) {
+        if let Some(h) = self.load::<T, F>(path, format, ali, storage, loader) {
             return storage.get(&h);
         }
         None
@@ -175,20 +174,19 @@ impl AssetLoader {
         &self,
         path: &str,
         format: F,
-        options: F::Options,
         ali: &mut AssetLoaderInternal<T>,
         storage: &mut AssetStorage<T>,
         loader: &Loader,
     ) -> Option<Handle<T>>
     where
         T: Asset,
-        F: Format<T> + 'static,
+        F: Format<T::Data> + 'static,
     {
         if let Some(handle) = AssetLoader::get_asset_handle(path, ali) {
             return Some(handle);
         }
         if let Some(p) = self.resolve_path(path) {
-            let handle: Handle<T> = loader.load(p, format, options, (), storage);
+            let handle = loader.load(p, format, (), storage);
             ali.assets.insert(String::from(path), handle.clone());
             return Some(handle);
         }

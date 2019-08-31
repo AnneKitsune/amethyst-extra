@@ -50,8 +50,8 @@ impl<'a> System<'a> for JumpSystem {
         WriteStorage<'a, Grounded>,
         WriteStorage<'a, Jump>,
         Read<'a, Time>,
-        Read<'a, InputHandler<String, String>>,
-        WriteStorage<'a, DynamicBody>,
+        Read<'a, InputHandler<StringBindings>>,
+        WriteStorage<'a, PhysicsBody<f32>>,
     );
 
     fn run(

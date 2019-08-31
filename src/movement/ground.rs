@@ -1,5 +1,3 @@
-use amethyst::shrev::EventChannel;
-
 use amethyst::core::timing::Time;
 use amethyst::core::*;
 use amethyst::ecs::*;
@@ -7,6 +5,7 @@ use amethyst::ecs::*;
 use serde::Serialize;
 
 use nphysics_ecs::ncollide::query::*;
+use nphysics_ecs::events::*;
 use nphysics_ecs::*;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, new)]
@@ -47,8 +46,8 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
         WriteStorage<'a, Grounded>,
         ReadStorage<'a, T>,
         Read<'a, Time>,
-        Read<'a, EventChannel<EntityProximityEvent>>,
-        ReadStorage<'a, Collider>,
+        Read<'a, ProximityEvents>,
+        ReadStorage<'a, PhysicsCollider<f32>>,
         ReadStorage<'a, GroundCheckTag>,
     );
 
@@ -164,9 +163,9 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
                     .any(|(_entity, tr, collider, _)| {
                         if let Proximity::Intersecting = proximity(
                             &transform.isometry(),
-                            &*feet_collider.shape,
+                            &*feet_collider.shape.handle(),
                             &tr.isometry(),
-                            &*collider.shape,
+                            &*collider.shape.handle(),
                             0.0,
                         ) {
                             warn!("COLLISION!!!");

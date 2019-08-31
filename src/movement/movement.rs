@@ -8,10 +8,6 @@ use amethyst::input::*;
 
 use serde::Serialize;
 
-use std::hash::Hash;
-
-use std::marker::PhantomData;
-
 use nphysics_ecs::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, new)]
@@ -27,27 +23,24 @@ impl Component for FpsMovement {
 /// The system that manages the fly movement.
 /// Generic parameters are the parameters for the InputHandler.
 #[derive(new)]
-pub struct FpsMovementSystemSimple<A, B> {
+pub struct FpsMovementSystemSimple<B: BindingTypes> {
     /// The name of the input axis to locally move in the x coordinates.
     /// Left and right.
-    right_input_axis: Option<A>,
+    right_input_axis: Option<B::Axis>,
     /// The name of the input axis to locally move in the z coordinates.
     /// Forward and backward. Please note that -z is forward when defining your input configurations.
-    forward_input_axis: Option<A>,
-    _phantomdata: PhantomData<B>,
+    forward_input_axis: Option<B::Axis>,
 }
 
-impl<'a, A, B> System<'a> for FpsMovementSystemSimple<A, B>
+impl<'a, B: BindingTypes> System<'a> for FpsMovementSystemSimple<B>
 where
-    A: Send + Sync + Hash + Eq + Clone + 'static,
-    B: Send + Sync + Hash + Eq + Clone + 'static,
 {
     type SystemData = (
         Read<'a, Time>,
         WriteStorage<'a, Transform>,
-        Read<'a, InputHandler<A, B>>,
+        Read<'a, InputHandler<B>>,
         ReadStorage<'a, FpsMovement>,
-        WriteStorage<'a, DynamicBody>,
+        WriteStorage<'a, PhysicsBody<f32>>,
     );
 
     fn run(&mut self, (time, transforms, input, tags, mut rigid_bodies): Self::SystemData) {
@@ -97,26 +90,22 @@ impl Component for BhopMovement3D {
 /// The system that manages the first person movements (with added projection acceleration capabilities).
 /// Generic parameters are the parameters for the InputHandler.
 #[derive(new)]
-pub struct BhopMovementSystem<A, B> {
+pub struct BhopMovementSystem<B: BindingTypes> {
     /// The name of the input axis to locally move in the x coordinates.
-    right_input_axis: Option<A>,
+    right_input_axis: Option<B::Axis>,
     /// The name of the input axis to locally move in the z coordinates.
-    forward_input_axis: Option<A>,
-    phantom_data: PhantomData<B>,
+    forward_input_axis: Option<B::Axis>,
 }
 
-impl<'a, A, B> System<'a> for BhopMovementSystem<A, B>
-where
-    A: Send + Sync + Hash + Eq + Clone + 'static,
-    B: Send + Sync + Hash + Eq + Clone + 'static,
+impl<'a, B: BindingTypes> System<'a> for BhopMovementSystem<B>
 {
     type SystemData = (
         Read<'a, Time>,
-        Read<'a, InputHandler<A, B>>,
+        Read<'a, InputHandler<B>>,
         ReadStorage<'a, Transform>,
         ReadStorage<'a, BhopMovement3D>,
         ReadStorage<'a, Grounded>,
-        WriteStorage<'a, DynamicBody>,
+        WriteStorage<'a, PhysicsBody<f32>>,
     );
 
     fn run(

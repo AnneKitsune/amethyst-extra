@@ -18,7 +18,7 @@ extern crate derive_new;
 extern crate discord_rpc_client;
 pub extern crate hyper;
 pub extern crate hyper_tls;
-pub extern crate nphysics_ecs_dumb as nphysics_ecs;
+pub extern crate specs_physics as nphysics_ecs;
 extern crate tokio;
 extern crate tokio_executor;
 
@@ -47,7 +47,7 @@ pub use self::time_control::*;
 pub use self::ui_timer::*;
 
 use amethyst::core::math::{Point3, Vector3};
-use amethyst::renderer::MeshData;
+use amethyst::renderer::types::MeshData;
 
 use amethyst::ecs::*;
 
@@ -252,8 +252,8 @@ pub fn exec_http_request(
     request: Request<Body>,
     future_runtime: &mut Runtime,
     callback_queue: &CallbackQueue,
-    on_success: Box<Fn(Response<Body>) -> Box<Fn(&mut World) + Send> + Send>,
-    on_error: Box<Fn(hyper::Error) -> Box<Fn(&mut World) + Send> + Send>,
+    on_success: Box<dyn Fn(Response<Body>) -> Box<dyn Fn(&mut World) + Send> + Send>,
+    on_error: Box<dyn Fn(hyper::Error) -> Box<dyn Fn(&mut World) + Send> + Send>,
 ) {
     let send_handle1 = callback_queue.send_handle();
     let send_handle2 = callback_queue.send_handle();

@@ -7,23 +7,20 @@ use amethyst::input::*;
 
 use serde::Serialize;
 
-use std::hash::Hash;
-
 #[derive(new, Debug, Serialize, Deserialize)]
 pub struct ManualTimeControl<T>
-where
-    T: Send + Sync + Hash + Eq + Clone + 'static,
+where T: BindingTypes,
 {
-    pub play_action_key: T,
-    pub stop_action_key: T,
-    pub half_action_key: T,
-    pub double_action_key: T,
+    pub play_action_key: T::Action,
+    pub stop_action_key: T::Action,
+    pub half_action_key: T::Action,
+    pub double_action_key: T::Action,
 }
 
 #[derive(new, Debug, Default)]
 pub struct ManualTimeControlSystem<T>
 where
-    T: Send + Sync + Hash + Eq + Clone + 'static,
+    T: BindingTypes,
 {
     #[new(default)]
     event_reader: Option<ReaderId<InputEvent<T>>>,
@@ -31,7 +28,7 @@ where
 
 impl<'a, T> System<'a> for ManualTimeControlSystem<T>
 where
-    T: Send + Sync + Hash + Eq + Clone + 'static,
+    T: BindingTypes,
 {
     type SystemData = (
         Write<'a, Time>,

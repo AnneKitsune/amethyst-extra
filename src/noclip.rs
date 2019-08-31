@@ -1,6 +1,6 @@
 use amethyst::controls::FlyControlTag;
 
-use amethyst::renderer::{ActiveCamera, Camera};
+use amethyst::renderer::{camera::ActiveCamera, Camera};
 use amethyst::shrev::EventChannel;
 
 use amethyst::core::*;
@@ -9,14 +9,12 @@ use amethyst::input::*;
 
 use serde::Serialize;
 
-use std::hash::Hash;
-
 #[derive(new, Debug, Serialize, Deserialize)]
 pub struct NoClip<T>
 where
-    T: Send + Sync + Hash + Eq + Clone + 'static,
+    T: BindingTypes,
 {
-    pub toggle_action_key: T,
+    pub toggle_action_key: T::Action,
     #[new(default)]
     #[serde(skip)]
     pub(crate) noclip_entity: Option<Entity>,
@@ -42,7 +40,7 @@ impl Component for NoClipTag {
 #[derive(new, Debug, Default)]
 pub struct NoClipToggleSystem<T>
 where
-    T: Send + Sync + Hash + Eq + Clone + 'static,
+    T: BindingTypes,
 {
     #[new(default)]
     event_reader: Option<ReaderId<InputEvent<T>>>,
@@ -50,13 +48,12 @@ where
 
 impl<'a, T> System<'a> for NoClipToggleSystem<T>
 where
-    T: Send + Sync + Hash + Eq + Clone + 'static,
+    T: BindingTypes,
 {
     type SystemData = (
         Entities<'a>,
         Read<'a, EventChannel<InputEvent<T>>>,
         WriteStorage<'a, Transform>,
-        ReadStorage<'a, GlobalTransform>,
         WriteStorage<'a, FlyControlTag>,
         WriteStorage<'a, Camera>,
         Write<'a, ActiveCamera>,
@@ -70,7 +67,6 @@ where
             entities,
             events,
             mut transforms,
-            mut _global_transforms,
             mut fly_control_tags,
             mut cameras,
             mut active_camera,
