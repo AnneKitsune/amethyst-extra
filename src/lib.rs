@@ -47,7 +47,7 @@ pub use self::time_control::*;
 pub use self::ui_timer::*;
 
 use amethyst::core::math::{Point3, Vector3};
-use amethyst::renderer::types::MeshData;
+use amethyst::gltf::VerticeData;
 
 use amethyst::ecs::*;
 
@@ -83,23 +83,18 @@ impl AssetToFormat<Mesh> for Mesh{
     }
 }*/
 
-pub fn verts_from_mesh_data(mesh_data: &MeshData, scale: &Vector3<f32>) -> Vec<Point3<f32>> {
-    if let MeshData::Creator(combo) = mesh_data {
-        combo
-            .vertices()
+pub fn verts_from_mesh_data(mesh_data: &VerticeData, scale: &Vector3<f32>) -> Vec<Point3<f32>> {
+        mesh_data
+            .vertices
             .iter()
             .map(|sep| {
                 Point3::new(
-                    (sep.0)[0] * scale.x,
-                    (sep.0)[1] * scale.y,
-                    (sep.0)[2] * scale.z,
+                    sep[0] * scale.x,
+                    sep[1] * scale.y,
+                    sep[2] * scale.z,
                 )
             })
             .collect::<Vec<_>>()
-    } else {
-        error!("MeshData was not of combo type! Not extracting vertices.");
-        vec![]
-    }
 }
 
 pub fn avg_float_to_string(value: f32, decimals: u32) -> String {
@@ -221,7 +216,7 @@ impl Drop for DiscordRichPresence {
 
 /// Changes the discord rich presence state, if present in the world.
 pub fn set_discord_state(state: String, world: &mut World) {
-    if let Some(mut drp) = world.res.try_fetch_mut::<DiscordRichPresence>() {
+    if let Some(mut drp) = world.try_fetch_mut::<DiscordRichPresence>() {
         drp.set_state(state);
     }
 }

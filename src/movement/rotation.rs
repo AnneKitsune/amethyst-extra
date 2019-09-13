@@ -26,14 +26,25 @@ impl Component for RotationControl {
 /// The system that manages the view rotation.
 /// Controlled by the mouse.
 /// Put the RotationControl component on the Camera. The Camera should be a child of the player collider entity.
-#[derive(Debug, new)]
+#[derive(Debug)]
 pub struct FPSRotationRhusicsSystem<A, B> {
     sensitivity_x: f32,
     sensitivity_y: f32,
     _marker1: PhantomData<A>,
     _marker2: PhantomData<B>,
-    #[new(default)]
-    event_reader: Option<ReaderId<Event>>,
+    event_reader: ReaderId<Event>,
+}
+
+impl<A, B> FPSRotationRhusicsSystem<A, B> 
+where
+    A: Send + Sync + Hash + Eq + Clone + 'static,
+    B: Send + Sync + Hash + Eq + Clone + 'static,
+{
+    pub fn new(sensitivity_x: f32, sensitivity_y: f32, world: &mut World) -> Self {
+        <Self as System>::SystemData::setup(world);
+        let event_reader = world.fetch_mut::<EventChannel<Event>>().register_reader();
+        FPSRotationRhusicsSystem {sensitivity_x, sensitivity_y, _marker1: PhantomData, _marker2: PhantomData, event_reader}
+    }
 }
 
 impl<'a, A, B> System<'a> for FPSRotationRhusicsSystem<A, B>
@@ -65,7 +76,7 @@ where
     ) {
         let focused = focus.is_focused;
         let win_events = events
-            .read(&mut self.event_reader.as_mut().unwrap())
+            .read(&mut self.event_reader)
             .collect::<Vec<_>>();
         if !win_events.iter().any(|e| match e {
             Event::DeviceEvent {
@@ -121,10 +132,5 @@ where
                 }
             }
         }
-    }
-
-    fn setup(&mut self, res: &mut Resources) {
-        Self::SystemData::setup(res);
-        self.event_reader = Some(res.fetch_mut::<EventChannel<Event>>().register_reader());
     }
 }

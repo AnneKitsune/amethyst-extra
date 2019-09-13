@@ -12,7 +12,8 @@ edition = "2018"
 exclude = ["doc"]
 
 [dependencies]
-amethyst = { version = "0.12", features = ["vulkan", "nightly"] }
+amethyst = { path = "../amethyst", features = ["gltf", "animation", "vulkan", "nightly"] }
+specs-physics = { path = "../specs-physics", features = ["amethyst"] }
 crossbeam-channel = "0.3.1"
 discord-rpc-client = "0.2.3"
 partial_function = "0.4.0"
@@ -28,24 +29,8 @@ rand = "0.5.5"
 lazy_static = "1.1.0"
 derive-new = "0.5"
 roman = "0.1.6"
-#specs-derive = { git = "https://github.com/slide-rs/specs" }
-#amethyst-rhusics = "0.3"
-
-#nphysics3d = "0.9.4"
-
-#ncollide3d = "0.17.3"
-
-#nphysics-ecs-dumb = { git = "https://github.com/jojolepro/nphysics-ecs-dumb", branch = "changes" }
-#nphysics-ecs-dumb = { git = "https://github.com/jojolepro/nphysics-ecs-dumb", branch = "collisionperf" }
-#specs-physics = { git = "https://github.com/jojolepro/specs-physics", branch = "hoppinworld" }
-specs-physics = { path = "../specs-physics", branch = "hoppinworld" }
-
 hyper = "0.12.11"
 hyper-tls = "0.3.1"
-
 tokio = "0.1.7"
 tokio-executor = "0.1.0"
 
-#amethyst = { git = "https://github.com/jojolepro/amethyst", branch="master" }
-#amethyst = { git = "https://github.com/jojolepro/amethyst", branch="activecamera", features = ["nightly"] }
-#amethyst-rhusics = { git = "https://github.com/amethyst/amethyst-rhusics" }

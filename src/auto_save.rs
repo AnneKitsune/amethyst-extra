@@ -29,10 +29,35 @@ pub struct AutoSaveSystem<T> {
     _phantom_data: PhantomData<T>,
 }
 
-impl<T> AutoSaveSystem<T> {
+impl<T> AutoSaveSystem<T> 
+where 
+    T: Serialize + DeserializeOwned + Default + ShouldSave + Send + Sync + 'static,
+{
     /// Create a new `AutoSaveSystem`.
     /// Save path is an absolute path.
-    pub fn new(save_path: String) -> Self {
+    pub fn new(save_path: String, world: &mut World) -> Self {
+        <Self as System>::SystemData::setup(world);
+        // attempt loading
+        if let Ok(mut f) = File::open(&save_path) {
+            let mut buf = String::new();
+            if let Ok(_) = f.read_to_string(&mut buf) {
+                if let Ok(o) = ron::de::from_str::<T>(&buf) {
+                    world.insert(Dirty::new(o));
+                } else {
+                    error!(
+                        "Failed to deserialize save file: {}.\nThe file might be corrupted.",
+                        save_path
+                    );
+                }
+            } else {
+                error!("Failed to read content of save file: {}", save_path);
+            }
+        } else {
+            warn!(
+                "Failed to load save file: {}. It will be created during the next save.",
+                save_path
+            );
+        }
         AutoSaveSystem {
             save_path,
             _phantom_data: PhantomData,
@@ -45,30 +70,6 @@ where
     T: Serialize + DeserializeOwned + Default + ShouldSave + Send + Sync + 'static,
 {
     type SystemData = (Write<'a, Dirty<T>>,);
-    fn setup(&mut self, res: &mut amethyst::ecs::Resources) {
-        // attempt loading
-        if let Ok(mut f) = File::open(&self.save_path) {
-            let mut buf = String::new();
-            if let Ok(_) = f.read_to_string(&mut buf) {
-                if let Ok(o) = ron::de::from_str::<T>(&buf) {
-                    res.insert(Dirty::new(o));
-                } else {
-                    error!(
-                        "Failed to deserialize save file: {}.\nThe file might be corrupted.",
-                        self.save_path
-                    );
-                }
-            } else {
-                error!("Failed to read content of save file: {}", self.save_path);
-            }
-        } else {
-            warn!(
-                "Failed to load save file: {}. It will be created during the next save.",
-                self.save_path
-            );
-        }
-        Self::SystemData::setup(res);
-    }
     fn run(&mut self, (mut data,): Self::SystemData) {
         if data.dirty() {
             data.clear();

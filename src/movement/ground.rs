@@ -51,14 +51,6 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
         ReadStorage<'a, GroundCheckTag>,
     );
 
-    fn setup(&mut self, mut res: &mut Resources) {
-        Self::SystemData::setup(&mut res);
-        /*self.contact_reader = Some(
-            res.fetch_mut::<EventChannel<ContactEvent<Entity, Point3<f32>>>>()
-                .register_reader(),
-        );*/
-    }
-
     fn run(
         &mut self,
         (

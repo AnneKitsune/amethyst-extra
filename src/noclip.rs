@@ -37,13 +37,25 @@ impl Component for NoClipTag {
 /// Forces the entity's camera to always be the primary one.
 /// When untoggling, deletes the entity and sets the main camera to whatever last one was set as primary.
 /// (including the one changed during the noclipping)
-#[derive(new, Debug, Default)]
+#[derive(Debug)]
 pub struct NoClipToggleSystem<T>
 where
     T: BindingTypes,
 {
-    #[new(default)]
-    event_reader: Option<ReaderId<InputEvent<T>>>,
+    event_reader: ReaderId<InputEvent<T>>,
+}
+
+impl<T> NoClipToggleSystem<T> 
+where T: BindingTypes,
+{
+    pub fn new(world: &mut World) -> Self {
+        <Self as System>::SystemData::setup(world);
+        let event_reader = 
+            world.fetch_mut::<EventChannel<InputEvent<T>>>()
+                .register_reader()
+        ;
+        NoClipToggleSystem{event_reader}
+    }
 }
 
 impl<'a, T> System<'a> for NoClipToggleSystem<T>
@@ -80,7 +92,7 @@ where
 
         // TODO: AutoFov support
 
-        for event in events.read(&mut self.event_reader.as_mut().unwrap()) {
+        for event in events.read(&mut self.event_reader) {
             match event {
                 InputEvent::ActionPressed(key) => {
                     if *key == noclip_res.toggle_action_key {
@@ -121,13 +133,5 @@ where
                 _ => {}
             }
         }
-    }
-
-    fn setup(&mut self, res: &mut Resources) {
-        Self::SystemData::setup(res);
-        self.event_reader = Some(
-            res.fetch_mut::<EventChannel<InputEvent<T>>>()
-                .register_reader(),
-        );
     }
 }

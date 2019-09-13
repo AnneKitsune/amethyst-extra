@@ -17,14 +17,28 @@ where T: BindingTypes,
     pub double_action_key: T::Action,
 }
 
-#[derive(new, Debug, Default)]
+#[derive(Debug)]
 pub struct ManualTimeControlSystem<T>
 where
     T: BindingTypes,
 {
-    #[new(default)]
-    event_reader: Option<ReaderId<InputEvent<T>>>,
+    event_reader: ReaderId<InputEvent<T>>,
 }
+
+impl<T> ManualTimeControlSystem<T>
+where
+    T: BindingTypes,
+{
+    pub fn new(world: &mut World) -> Self {
+        <Self as System>::SystemData::setup(world);
+        let event_reader = 
+            world.fetch_mut::<EventChannel<InputEvent<T>>>()
+                .register_reader()
+        ;
+        ManualTimeControlSystem{event_reader}
+    }
+}
+
 
 impl<'a, T> System<'a> for ManualTimeControlSystem<T>
 where
@@ -37,7 +51,7 @@ where
     );
 
     fn run(&mut self, (mut time, events, time_control): Self::SystemData) {
-        for event in events.read(&mut self.event_reader.as_mut().unwrap()) {
+        for event in events.read(&mut self.event_reader) {
             match event {
                 InputEvent::ActionPressed(key) => {
                     if *key == time_control.play_action_key {
@@ -55,13 +69,5 @@ where
                 _ => {}
             }
         }
-    }
-
-    fn setup(&mut self, res: &mut Resources) {
-        Self::SystemData::setup(res);
-        self.event_reader = Some(
-            res.fetch_mut::<EventChannel<InputEvent<T>>>()
-                .register_reader(),
-        );
     }
 }
