@@ -10,6 +10,7 @@ use partial_function::*;
 
 
 use nphysics_ecs::*;
+use specs_physics::bodies::*;
 
 #[derive(Default, new)]
 pub struct Jump {
@@ -51,7 +52,7 @@ impl<'a> System<'a> for JumpSystem {
         WriteStorage<'a, Jump>,
         Read<'a, Time>,
         Read<'a, InputHandler<StringBindings>>,
-        WriteStorage<'a, PhysicsBody<f32>>,
+        WriteRigidBodies<'a, f32>,
     );
 
     fn run(
@@ -65,7 +66,7 @@ impl<'a> System<'a> for JumpSystem {
                 self.input_hold = true;
             }
 
-            for (entity, mut jump, mut rb) in (&*entities, &mut jumps, &mut rigid_bodies).join() {
+            for (entity, mut jump, rb) in (&*entities, &mut jumps, &mut rigid_bodies).join() {
                 // Holding the jump key on a non-auto jump controller.
                 if self.input_hold && !jump.auto_jump {
                     continue;
@@ -103,13 +104,13 @@ impl<'a> System<'a> for JumpSystem {
                     };
 
                     if !jump.absolute {
-                        rb.velocity.linear += Vector3::<f32>::y() * jump.jump_force * multiplier;
+                        rb.set_linear_velocity(rb.velocity().linear + Vector3::<f32>::y() * jump.jump_force * multiplier);
                     } else {
                         let (x, z) = {
-                            let v = rb.velocity.linear;
+                            let v = rb.velocity().linear;
                             (v.x, v.z)
                         };
-                        rb.velocity.linear = Vector3::new(x, jump.jump_force * multiplier, z);
+                        rb.set_linear_velocity(Vector3::new(x, jump.jump_force * multiplier, z));
                     }
                 }
                 if let Some(ref mut ground) = grounded.get_mut(entity) {

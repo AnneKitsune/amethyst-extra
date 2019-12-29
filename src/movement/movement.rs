@@ -9,6 +9,7 @@ use amethyst::input::*;
 use serde::Serialize;
 
 use nphysics_ecs::*;
+use specs_physics::bodies::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, new)]
 pub struct FpsMovement {
@@ -40,7 +41,7 @@ where
         WriteStorage<'a, Transform>,
         Read<'a, InputHandler<B>>,
         ReadStorage<'a, FpsMovement>,
-        WriteStorage<'a, PhysicsBody<f32>>,
+        WriteRigidBodies<'a, f32>,
     );
 
     fn run(&mut self, (time, transforms, input, tags, mut rigid_bodies): Self::SystemData) {
@@ -52,7 +53,7 @@ where
             for (transform, tag, rb) in (&transforms, &tags, &mut rigid_bodies).join() {
                 let mut dir: Vector3<f32> = transform.rotation() * dir;
                 dir = dir.normalize();
-                rb.velocity.linear += dir * tag.speed * time.delta_seconds();
+                rb.set_linear_velocity(rb.velocity().linear + dir * tag.speed * time.delta_seconds());
             }
         }
     }
@@ -105,7 +106,7 @@ impl<'a, B: BindingTypes> System<'a> for BhopMovementSystem<B>
         ReadStorage<'a, Transform>,
         ReadStorage<'a, BhopMovement3D>,
         ReadStorage<'a, Grounded>,
-        WriteStorage<'a, PhysicsBody<f32>>,
+        WriteRigidBodies<'a, f32>,
     );
 
     fn run(
@@ -117,7 +118,7 @@ impl<'a, B: BindingTypes> System<'a> for BhopMovementSystem<B>
         let input = Vector2::new(x, z);
 
         if input.magnitude() != 0.0 {
-            for (transform, movement, grounded, mut rb) in
+            for (transform, movement, grounded, rb) in
                 (&transforms, &movements, &groundeds, &mut rigid_bodies).join()
             {
                 let (acceleration, max_velocity) = if grounded.ground {
@@ -127,7 +128,7 @@ impl<'a, B: BindingTypes> System<'a> for BhopMovementSystem<B>
                 };
 
                 // Global to local coords.
-                let relative = transform.rotation().inverse() * rb.velocity.linear;
+                let relative = transform.rotation().inverse() * rb.velocity().linear;
 
                 let new_vel_rel = if movement.absolute {
                     // Absolute = We immediately set the maximum velocity without checking the max speed.
@@ -157,7 +158,7 @@ impl<'a, B: BindingTypes> System<'a> for BhopMovementSystem<B>
                 let new_vel = transform.rotation() * new_vel_rel;
 
                 // Assign the new velocity to the player
-                rb.velocity.linear = new_vel;
+                rb.set_linear_velocity(new_vel);
             }
         }
     }

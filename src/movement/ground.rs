@@ -5,8 +5,9 @@ use amethyst::ecs::*;
 use serde::Serialize;
 
 use nphysics_ecs::ncollide::query::*;
-use nphysics_ecs::events::*;
 use nphysics_ecs::*;
+use specs_physics::bodies::*;
+use specs_physics::colliders::ColliderComponent;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, new)]
 pub struct Grounded {
@@ -46,8 +47,8 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
         WriteStorage<'a, Grounded>,
         ReadStorage<'a, T>,
         Read<'a, Time>,
-        Read<'a, ProximityEvents>,
-        ReadStorage<'a, PhysicsCollider<f32>>,
+        ReadExpect<'a, GeometricalWorldRes<f32>>,
+        ReadStorage<'a, ColliderComponent<f32>>,
         ReadStorage<'a, GroundCheckTag>,
     );
 
@@ -155,9 +156,9 @@ impl<'a, T: Component + PartialEq> System<'a> for GroundCheckerSystem<T> {
                     .any(|(_entity, tr, collider, _)| {
                         if let Proximity::Intersecting = proximity(
                             &transform.isometry(),
-                            &*feet_collider.shape.handle(),
+                            &*feet_collider.shape(),
                             &tr.isometry(),
-                            &*collider.shape.handle(),
+                            &*collider.shape(),
                             0.0,
                         ) {
                             warn!("COLLISION!!!");

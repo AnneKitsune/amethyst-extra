@@ -8,6 +8,7 @@ use amethyst::ecs::*;
 use serde::Serialize;
 
 use nphysics_ecs::*;
+use specs_physics::bodies::*;
 
 /// The way friction is applied.
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
@@ -46,7 +47,7 @@ impl<'a> System<'a> for GroundFrictionSystem {
         Read<'a, Time>,
         ReadStorage<'a, Grounded>,
         ReadStorage<'a, GroundFriction3D>,
-        WriteStorage<'a, PhysicsBody<f32>>,
+        WriteRigidBodies<'a, f32>,
     );
 
     fn run(&mut self, (time, groundeds, frictions, mut rigid_bodies): Self::SystemData) {
@@ -56,31 +57,31 @@ impl<'a> System<'a> for GroundFrictionSystem {
             }
             v - friction
         }
-        for (grounded, friction, mut rb) in (&groundeds, &frictions, &mut rigid_bodies).join() {
+        for (grounded, friction, rb) in (&groundeds, &frictions, &mut rigid_bodies).join() {
             if grounded.ground
                 && time.absolute_time_seconds() - grounded.since
                     >= friction.ground_time_before_apply
             {
                 let (x, y, z) = {
-                    let v = rb.velocity.linear;
+                    let v = rb.velocity().linear;
                     (v.x, v.y, v.z)
                 };
                 match friction.friction_mode {
                     FrictionMode::Linear => {
                         let slowdown = friction.friction * time.delta_seconds();
-                        rb.velocity.linear = Vector3::new(
+                        rb.set_linear_velocity(Vector3::new(
                             apply_friction_single(x, slowdown),
                             y,
                             apply_friction_single(z, slowdown),
-                        );
+                        ));
                     }
                     FrictionMode::Percent => {
                         let coef = friction.friction * time.delta_seconds();
-                        rb.velocity.linear = Vector3::new(
+                        rb.set_linear_velocity(Vector3::new(
                             apply_friction_single(x, x * coef),
                             y,
                             apply_friction_single(z, z * coef),
-                        );
+                        ));
                     }
                 }
             }
