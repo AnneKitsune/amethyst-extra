@@ -12,7 +12,7 @@ edition = "2018"
 exclude = ["doc"]
 
 [dependencies]
-amethyst = { path = "../amethyst", features = ["gltf", "animation", "vulkan", "nightly"] }
+amethyst = { git = "https://github.com/jojolepro/amethyst", branch = "hoppinworld", features = ["gltf", "animation", "vulkan", "nightly"] }
 specs-physics = { path = "../specs-physics", features = ["amethyst"] }
 crossbeam-channel = "0.3.1"
 discord-rpc-client = "0.2.3"
