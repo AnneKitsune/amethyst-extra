@@ -32,7 +32,7 @@ pub struct FPSRotationRhusicsSystem<A, B> {
     sensitivity_y: f32,
     _marker1: PhantomData<A>,
     _marker2: PhantomData<B>,
-    event_reader: ReaderId<Event>,
+    event_reader: Option<ReaderId<Event>>,
 }
 
 impl<A, B> FPSRotationRhusicsSystem<A, B> 
@@ -40,10 +40,8 @@ where
     A: Send + Sync + Hash + Eq + Clone + 'static,
     B: Send + Sync + Hash + Eq + Clone + 'static,
 {
-    pub fn new(sensitivity_x: f32, sensitivity_y: f32, world: &mut World) -> Self {
-        <Self as System>::SystemData::setup(world);
-        let event_reader = world.fetch_mut::<EventChannel<Event>>().register_reader();
-        FPSRotationRhusicsSystem {sensitivity_x, sensitivity_y, _marker1: PhantomData, _marker2: PhantomData, event_reader}
+    pub fn new(sensitivity_x: f32, sensitivity_y: f32) -> Self {
+        FPSRotationRhusicsSystem {sensitivity_x, sensitivity_y, _marker1: PhantomData, _marker2: PhantomData, event_reader: None}
     }
 }
 
@@ -54,7 +52,7 @@ where
 {
     type SystemData = (
         Entities<'a>,
-        Read<'a, EventChannel<Event>>,
+        Write<'a, EventChannel<Event>>,
         WriteStorage<'a, Transform>,
         WriteStorage<'a, RotationControl>,
         Read<'a, WindowFocus>,
@@ -66,7 +64,7 @@ where
         &mut self,
         (
             entities,
-            events,
+            mut events,
             mut transforms,
             mut rotation_controls,
             focus,
@@ -74,9 +72,12 @@ where
             parents,
         ): Self::SystemData,
     ) {
+        if self.event_reader.is_none() {
+            self.event_reader = Some(events.register_reader());
+        }
         let focused = focus.is_focused;
         let win_events = events
-            .read(&mut self.event_reader)
+            .read(&mut self.event_reader.as_mut().unwrap())
             .collect::<Vec<_>>();
         if !win_events.iter().any(|e| match e {
             Event::DeviceEvent {
