@@ -14,7 +14,7 @@ exclude = ["doc"]
 [dependencies]
 amethyst = { git = "https://github.com/jojolepro/amethyst", branch = "hoppinworld", features = ["gltf", "animation", "vulkan", "nightly"] }
 #specs-physics = { path = "../specs-physics", features = ["amethyst"] }
-specs-physics = { git = "https://github.com/jojolepro/specs-physics", branch = "0.4.0", features = ["amethyst"] }
+specs-physics = { git = "https://github.com/jojolepro/specs-physics", branch = "0.4.0", features = ["amethyst", "dim3"] }
 crossbeam-channel = "0.3.1"
 discord-rpc-client = "0.2.3"
 partial_function = "0.4.0"
