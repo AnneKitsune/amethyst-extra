@@ -31,17 +31,16 @@ impl DiscordRichPresence {
         large_image_text: Option<String>,
         small_image: Option<String>,
         small_image_text: Option<String>,
-    ) -> std::result::Result<Self, ()> {
+    ) -> Self {
         let rpc = DiscordClient::new(app_id);
-        let drp = DiscordRichPresence {
+        DiscordRichPresence {
             rpc: Arc::new(Mutex::new(rpc)),
             state,
             large_image,
             large_image_text,
             small_image,
             small_image_text,
-        };
-        Ok(drp)
+        }
     }
 
     pub fn start(&mut self) {
