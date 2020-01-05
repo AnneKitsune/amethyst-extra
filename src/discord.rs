@@ -1,6 +1,9 @@
 use amethyst::ecs::World;
 use discord_rpc_client::Client as DiscordClient;
-use std::sync::{Arc, Mutex};
+use std::sync::mpsc::*;
+use std::sync::Mutex;
+use std::thread;
+use std::thread::JoinHandle;
 
 /// Discord Rich Presence wrapper around discord_rpc_client
 /// Currently errors are not exposed by the library, so I use the log crate
@@ -15,7 +18,7 @@ use std::sync::{Arc, Mutex};
 /// }
 /// ```
 pub struct DiscordRichPresence {
-    pub rpc: Arc<Mutex<DiscordClient>>,
+    pub rpc: DiscordClient,
     state: String,
     large_image: Option<String>,
     large_image_text: Option<String>,
@@ -34,7 +37,7 @@ impl DiscordRichPresence {
     ) -> Self {
         let rpc = DiscordClient::new(app_id);
         DiscordRichPresence {
-            rpc: Arc::new(Mutex::new(rpc)),
+            rpc,
             state,
             large_image,
             large_image_text,
@@ -44,7 +47,7 @@ impl DiscordRichPresence {
     }
 
     pub fn start(&mut self) {
-        self.rpc.lock().unwrap().start();
+        self.rpc.start();
         self.update();
     }
 
@@ -54,20 +57,25 @@ impl DiscordRichPresence {
     }
 
     pub fn update(&mut self) {
-        if let Err(e) = self.rpc.lock().unwrap().set_activity(|a| {
-            a.state(self.state.clone()).assets(|ass| {
+        let state = self.state.clone();
+        let large_image = self.large_image.clone();
+        let large_image_text = self.large_image_text.clone();
+        let small_image = self.small_image.clone();
+        let small_image_text = self.small_image_text.clone();
+        if let Err(e) = self.rpc.set_activity(|a| {
+            a.state(state).assets(|ass| {
                 let mut tmp = ass;
-                if let Some(ref t) = self.large_image {
-                    tmp = tmp.large_image(t.clone());
+                if let Some(t) = large_image {
+                    tmp = tmp.large_image(t);
                 }
-                if let Some(ref t) = self.large_image_text {
-                    tmp = tmp.large_text(t.clone());
+                if let Some(t) = large_image_text {
+                    tmp = tmp.large_text(t);
                 }
-                if let Some(ref t) = self.small_image {
-                    tmp = tmp.small_image(t.clone());
+                if let Some(t) = small_image {
+                    tmp = tmp.small_image(t);
                 }
-                if let Some(ref t) = self.small_image_text {
-                    tmp = tmp.small_text(t.clone());
+                if let Some(t) = small_image_text {
+                    tmp = tmp.small_text(t);
                 }
                 tmp
             })
@@ -79,15 +87,42 @@ impl DiscordRichPresence {
 
 impl Drop for DiscordRichPresence {
     fn drop(&mut self) {
-        if let Err(e) = self.rpc.lock().unwrap().clear_activity() {
+        if let Err(e) = self.rpc.clear_activity() {
             eprintln!("Failed to clear discord rich presence activity {:?}", e);
         }
     }
 }
 
+pub struct DiscordThreadHolder {
+    pub thread: JoinHandle<()>,
+    pub sender: Mutex<Sender<DiscordThreadMessage>>,
+}
+
+impl DiscordThreadHolder {
+    pub fn new(mut presence: DiscordRichPresence) -> Self {
+        let (tx, rx) = channel();
+        let thread = thread::spawn(move || {
+            presence.start();
+            loop {
+                match rx.recv() {
+                    Ok(DiscordThreadMessage::Update) => presence.update(),
+                    Ok(DiscordThreadMessage::SetState(state)) => presence.set_state(state),
+                    Err(_) => return,
+                }
+            }
+        });
+        Self {
+            thread,
+            sender: Mutex::new(tx),
+        }
+    }
+}
+
+pub enum DiscordThreadMessage {
+    Update, SetState(String),
+}
+
 /// Changes the discord rich presence state, if present in the world.
 pub fn set_discord_state(state: String, world: &mut World) {
-    if let Some(mut drp) = world.try_fetch_mut::<DiscordRichPresence>() {
-        drp.set_state(state);
-    }
+    world.fetch_mut::<DiscordThreadHolder>().sender.lock().expect("Failed to acquire mutex lock for DiscordThreadHolder sender handle").send(DiscordThreadMessage::SetState(state)).expect("Failed to send state update message through DiscordThreadHolder's sender");
 }
