@@ -11,12 +11,14 @@ license = "Apache-2.0"
 edition = "2018"
 exclude = ["doc"]
 
+#[features]
+#discord = ["discord-rpc-client"]
+
 [dependencies]
 amethyst = { git = "https://github.com/jojolepro/amethyst", branch = "hoppinworld", features = ["gltf", "animation", "vulkan", "nightly"] }
-#specs-physics = { path = "../specs-physics", features = ["amethyst"] }
 specs-physics = { git = "https://github.com/jojolepro/specs-physics", branch = "0.4.0", features = ["amethyst", "dim3"] }
 crossbeam-channel = "0.3.1"
-discord-rpc-client = "0.2.3"
+discord-rpc-client = "0.3.0"
 partial_function = "0.4.0"
 serde = { version = "1.0", features = ["serde_derive"] }
 serde_derive = "1.0"
