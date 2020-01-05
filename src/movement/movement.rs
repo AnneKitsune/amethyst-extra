@@ -32,9 +32,7 @@ pub struct FpsMovementSystemSimple<B: BindingTypes> {
     forward_input_axis: Option<B::Axis>,
 }
 
-impl<'a, B: BindingTypes> System<'a> for FpsMovementSystemSimple<B>
-where
-{
+impl<'a, B: BindingTypes> System<'a> for FpsMovementSystemSimple<B> {
     type SystemData = (
         Read<'a, Time>,
         WriteStorage<'a, Transform>,
@@ -52,7 +50,9 @@ where
             for (transform, tag, rb) in (&transforms, &tags, &mut rigid_bodies).join() {
                 let mut dir: Vector3<f32> = transform.rotation() * dir;
                 dir = dir.normalize();
-                rb.set_linear_velocity(rb.velocity().linear + dir * tag.speed * time.delta_seconds());
+                rb.set_linear_velocity(
+                    rb.velocity().linear + dir * tag.speed * time.delta_seconds(),
+                );
             }
         }
     }
@@ -97,8 +97,7 @@ pub struct BhopMovementSystem<B: BindingTypes> {
     forward_input_axis: Option<B::Axis>,
 }
 
-impl<'a, B: BindingTypes> System<'a> for BhopMovementSystem<B>
-{
+impl<'a, B: BindingTypes> System<'a> for BhopMovementSystem<B> {
     type SystemData = (
         Read<'a, Time>,
         Read<'a, InputHandler<B>>,

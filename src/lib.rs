@@ -69,7 +69,6 @@ use serde::Serialize;
 use std::fmt::Debug;
 use std::ops::{Add, Sub};
 
-
 use tokio::prelude::{Future, Stream};
 use tokio::runtime::Runtime;
 
@@ -86,17 +85,11 @@ impl AssetToFormat<Mesh> for Mesh{
 }*/
 
 pub fn verts_from_mesh_data(mesh_data: &VerticeData, scale: &Vector3<f32>) -> Vec<Point3<f32>> {
-        mesh_data
-            .vertices
-            .iter()
-            .map(|sep| {
-                Point3::new(
-                    sep[0] * scale.x,
-                    sep[1] * scale.y,
-                    sep[2] * scale.z,
-                )
-            })
-            .collect::<Vec<_>>()
+    mesh_data
+        .vertices
+        .iter()
+        .map(|sep| Point3::new(sep[0] * scale.x, sep[1] * scale.y, sep[2] * scale.z))
+        .collect::<Vec<_>>()
 }
 
 pub fn avg_float_to_string(value: f32, decimals: u32) -> String {
@@ -110,10 +103,13 @@ pub fn add_removal_to_entity<T: PartialEq + Clone + Debug + Send + Sync + 'stati
     id: T,
     world: &mut World,
 ) {
-    world.write_storage::<Removal<T>>().insert(entity, Removal::new(id)).expect(&format!(
-        "Failed to insert removalid to entity {:?}.",
-        entity
-    ));
+    world
+        .write_storage::<Removal<T>>()
+        .insert(entity, Removal::new(id))
+        .expect(&format!(
+            "Failed to insert removalid to entity {:?}.",
+            entity
+        ));
 }
 
 pub fn value_near<B: Add<Output = B> + Sub<Output = B> + PartialOrd + Copy>(
@@ -131,7 +127,6 @@ pub fn value_near<B: Add<Output = B> + Sub<Output = B> + PartialOrd + Copy>(
 impl Component for NavigationButton{
     type Storage = VecStorage<Self>;
 }*/
-
 
 pub fn https_client() -> Client<HttpsConnector<HttpConnector>, Body> {
     let https = HttpsConnector::new(2).expect("TLS initialization failed");
@@ -220,4 +215,3 @@ pub fn sec_to_display(secs: f64, decimals: usize) -> String {
         format!("{:0.*}", decimals, secs)
     }
 }
-

@@ -1,8 +1,8 @@
 use amethyst::controls::HideCursor;
 use amethyst::controls::WindowFocus;
 use amethyst::core::math::UnitQuaternion;
-use amethyst::winit::{DeviceEvent, Event};
 use amethyst::shrev::EventChannel;
+use amethyst::winit::{DeviceEvent, Event};
 
 use amethyst::core::*;
 use amethyst::ecs::*;
@@ -35,13 +35,19 @@ pub struct FPSRotationRhusicsSystem<A, B> {
     event_reader: Option<ReaderId<Event>>,
 }
 
-impl<A, B> FPSRotationRhusicsSystem<A, B> 
+impl<A, B> FPSRotationRhusicsSystem<A, B>
 where
     A: Send + Sync + Hash + Eq + Clone + 'static,
     B: Send + Sync + Hash + Eq + Clone + 'static,
 {
     pub fn new(sensitivity_x: f32, sensitivity_y: f32) -> Self {
-        FPSRotationRhusicsSystem {sensitivity_x, sensitivity_y, _marker1: PhantomData, _marker2: PhantomData, event_reader: None}
+        FPSRotationRhusicsSystem {
+            sensitivity_x,
+            sensitivity_y,
+            _marker1: PhantomData,
+            _marker2: PhantomData,
+            event_reader: None,
+        }
     }
 }
 

@@ -45,16 +45,16 @@ where
     event_reader: ReaderId<InputEvent<T>>,
 }
 
-impl<T> NoClipToggleSystem<T> 
-where T: BindingTypes,
+impl<T> NoClipToggleSystem<T>
+where
+    T: BindingTypes,
 {
     pub fn new(world: &mut World) -> Self {
         <Self as System>::SystemData::setup(world);
-        let event_reader = 
-            world.fetch_mut::<EventChannel<InputEvent<T>>>()
-                .register_reader()
-        ;
-        NoClipToggleSystem{event_reader}
+        let event_reader = world
+            .fetch_mut::<EventChannel<InputEvent<T>>>()
+            .register_reader();
+        NoClipToggleSystem { event_reader }
     }
 }
 

@@ -9,7 +9,8 @@ use serde::Serialize;
 
 #[derive(new, Debug, Serialize, Deserialize)]
 pub struct ManualTimeControl<T>
-where T: BindingTypes,
+where
+    T: BindingTypes,
 {
     pub play_action_key: T::Action,
     pub stop_action_key: T::Action,
@@ -31,14 +32,12 @@ where
 {
     pub fn new(world: &mut World) -> Self {
         <Self as System>::SystemData::setup(world);
-        let event_reader = 
-            world.fetch_mut::<EventChannel<InputEvent<T>>>()
-                .register_reader()
-        ;
-        ManualTimeControlSystem{event_reader}
+        let event_reader = world
+            .fetch_mut::<EventChannel<InputEvent<T>>>()
+            .register_reader();
+        ManualTimeControlSystem { event_reader }
     }
 }
-
 
 impl<'a, T> System<'a> for ManualTimeControlSystem<T>
 where

@@ -102,7 +102,10 @@ impl<'a> System<'a> for JumpSystem {
                     };
 
                     if !jump.absolute {
-                        rb.set_linear_velocity(rb.velocity().linear + Vector3::<f32>::y() * jump.jump_force * multiplier);
+                        rb.set_linear_velocity(
+                            rb.velocity().linear
+                                + Vector3::<f32>::y() * jump.jump_force * multiplier,
+                        );
                     } else {
                         let (x, z) = {
                             let v = rb.velocity().linear;

@@ -29,8 +29,8 @@ pub struct AutoSaveSystem<T> {
     _phantom_data: PhantomData<T>,
 }
 
-impl<T> AutoSaveSystem<T> 
-where 
+impl<T> AutoSaveSystem<T>
+where
     T: Serialize + DeserializeOwned + Default + ShouldSave + Send + Sync + 'static,
 {
     /// Create a new `AutoSaveSystem`.
@@ -60,10 +60,13 @@ where
             );
             None
         };
-        (AutoSaveSystem {
-            save_path,
-            _phantom_data: PhantomData,
-        }, dirty)
+        (
+            AutoSaveSystem {
+                save_path,
+                _phantom_data: PhantomData,
+            },
+            dirty,
+        )
     }
 }
 

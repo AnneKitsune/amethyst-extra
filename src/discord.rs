@@ -1,6 +1,6 @@
-use std::sync::{Arc, Mutex};
 use amethyst::ecs::World;
 use discord_rpc_client::Client as DiscordClient;
+use std::sync::{Arc, Mutex};
 
 /// Discord Rich Presence wrapper around discord_rpc_client
 /// Currently errors are not exposed by the library, so I use the log crate
