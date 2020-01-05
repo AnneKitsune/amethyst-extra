@@ -26,6 +26,8 @@ mod asset_loader;
 mod auth;
 mod auto_save;
 mod auto_text;
+#[cfg(feature = "discord")]
+mod discord;
 mod follow_mouse;
 mod movement;
 mod noclip;
@@ -38,6 +40,8 @@ pub use self::asset_loader::*;
 pub use self::auth::*;
 pub use self::auto_save::*;
 pub use self::auto_text::*;
+#[cfg(feature = "discord")]
+pub use self::discord::*;
 pub use self::follow_mouse::*;
 pub use self::movement::*;
 pub use self::noclip::*;
@@ -55,7 +59,6 @@ use amethyst::prelude::*;
 
 use amethyst::utils::removal::Removal;
 
-use discord_rpc_client::Client as DiscordClient;
 use hyper::client::HttpConnector;
 use hyper::{Body, Chunk, Client, Request, Response};
 use hyper_tls::HttpsConnector;
@@ -66,7 +69,6 @@ use serde::Serialize;
 use std::fmt::Debug;
 use std::ops::{Add, Sub};
 
-use std::sync::{Arc, Mutex};
 
 use tokio::prelude::{Future, Stream};
 use tokio::runtime::Runtime;
@@ -130,96 +132,6 @@ impl Component for NavigationButton{
     type Storage = VecStorage<Self>;
 }*/
 
-/// Discord Rich Presence wrapper around discord_rpc_client
-/// Currently errors are not exposed by the library, so I use the log crate
-/// to display errors and only return Result<T, ()> from the methods.
-///
-/// Make sure to properly create your app here: https://discordapp.com/developers/applications
-///
-/// Usage:
-/// ```rs
-/// fn init_discord_rich_presence() -> Result<DiscordRichPresence,()> {
-///     DiscordRichPresence::new(498979571933380609, "Main Menu", Some("large_image"), Some("Hoppin World"), None, None);
-/// }
-/// ```
-pub struct DiscordRichPresence {
-    pub rpc: Arc<Mutex<DiscordClient>>,
-    state: String,
-    large_image: Option<String>,
-    large_image_text: Option<String>,
-    small_image: Option<String>,
-    small_image_text: Option<String>,
-}
-
-impl DiscordRichPresence {
-    pub fn new(
-        app_id: u64,
-        state: String,
-        large_image: Option<String>,
-        large_image_text: Option<String>,
-        small_image: Option<String>,
-        small_image_text: Option<String>,
-    ) -> std::result::Result<Self, ()> {
-        let mut rpc = DiscordClient::new(app_id);
-        if let Err(e) = rpc {
-            error!("Failed to create discord rich presence client: {:?}", e);
-            return Err(());
-        }
-        rpc.as_mut().unwrap().start();
-        let mut drp = DiscordRichPresence {
-            rpc: Arc::new(Mutex::new(rpc.unwrap())),
-            state,
-            large_image,
-            large_image_text,
-            small_image,
-            small_image_text,
-        };
-        drp.update();
-        Ok(drp)
-    }
-    pub fn set_state(&mut self, state: String) {
-        self.state = state;
-        self.update();
-    }
-
-    pub fn update(&mut self) {
-        if let Err(e) = self.rpc.lock().unwrap().set_activity(|a| {
-            a.state(self.state.clone()).assets(|ass| {
-                let mut tmp = ass;
-                if let Some(ref t) = self.large_image {
-                    tmp = tmp.large_image(t.clone());
-                }
-                if let Some(ref t) = self.large_image_text {
-                    tmp = tmp.large_text(t.clone());
-                }
-                if let Some(ref t) = self.small_image {
-                    tmp = tmp.small_image(t.clone());
-                }
-                if let Some(ref t) = self.small_image_text {
-                    tmp = tmp.small_text(t.clone());
-                }
-                tmp
-            })
-        }) {
-            error!("Failed to set discord rich presence state: {}", e);
-        }
-    }
-}
-
-impl Drop for DiscordRichPresence {
-    fn drop(&mut self) {
-        if let Err(e) = self.rpc.lock().unwrap().clear_activity() {
-            eprintln!("Failed to clear discord rich presence activity {:?}", e);
-        }
-    }
-}
-
-/// Changes the discord rich presence state, if present in the world.
-pub fn set_discord_state(state: String, world: &mut World) {
-    if let Some(mut drp) = world.try_fetch_mut::<DiscordRichPresence>() {
-        drp.set_state(state);
-    }
-}
 
 pub fn https_client() -> Client<HttpsConnector<HttpConnector>, Body> {
     let https = HttpsConnector::new(2).expect("TLS initialization failed");
@@ -309,36 +221,3 @@ pub fn sec_to_display(secs: f64, decimals: usize) -> String {
     }
 }
 
-// Building parts + logic
-
-/*
-Mock data
-
-Player Stats:
-Health
-Physical Damage
-Mana
-
-Player Skills:
-Repulsive Orb (-10 mana/throw, 1 sec cooldown)
-
-Player Levels:
-global level
-health level
-mana regen level
-physical damage level
-
-Item Def:
-Mana pendant (+ 10 max mana, +1.0 mana regen / sec)
-
-Item Instance:
-Greater Mana pendant (Capacity Enchant):
-    Mana pendant regular +
-    Greater (20% buff all effects) (+2 max mana, +0.2 mana regen)
-    Capacity Enchant (+20 max mana)
-
-*/
-
-/*
-  2D controllers
-*/

@@ -9,7 +9,6 @@ use amethyst::input::*;
 use serde::Serialize;
 
 use nphysics_ecs::*;
-use specs_physics::bodies::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, new)]
 pub struct FpsMovement {

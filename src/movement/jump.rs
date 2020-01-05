@@ -8,9 +8,7 @@ use amethyst::input::*;
 
 use partial_function::*;
 
-
 use nphysics_ecs::*;
-use specs_physics::bodies::*;
 
 #[derive(Default, new)]
 pub struct Jump {

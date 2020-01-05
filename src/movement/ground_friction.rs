@@ -8,7 +8,6 @@ use amethyst::ecs::*;
 use serde::Serialize;
 
 use nphysics_ecs::*;
-use specs_physics::bodies::*;
 
 /// The way friction is applied.
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]

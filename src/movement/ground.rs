@@ -6,7 +6,6 @@ use serde::Serialize;
 
 use nphysics_ecs::ncollide::query::*;
 use nphysics_ecs::*;
-use specs_physics::bodies::*;
 use specs_physics::colliders::ColliderComponent;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, new)]
