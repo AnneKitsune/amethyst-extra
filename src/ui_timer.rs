@@ -1,8 +1,8 @@
-use amethyst::core::timing::Time;
+use ::amethyst::core::timing::Time;
 
-use amethyst::ecs::*;
+use ::amethyst::ecs::*;
 
-use amethyst::ui::UiText;
+use ::amethyst::ui::UiText;
 
 pub struct UiTimer {
     pub start: f64,

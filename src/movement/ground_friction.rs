@@ -1,9 +1,9 @@
 use crate::movement::ground::Grounded;
-use amethyst::core::math::Vector3;
+use ::amethyst::core::math::Vector3;
 
-use amethyst::core::timing::Time;
+use ::amethyst::core::timing::Time;
 
-use amethyst::ecs::*;
+use ::amethyst::ecs::*;
 
 use serde::Serialize;
 

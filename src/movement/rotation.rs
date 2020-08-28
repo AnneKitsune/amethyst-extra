@@ -1,11 +1,11 @@
-use amethyst::controls::HideCursor;
-use amethyst::controls::WindowFocus;
-use amethyst::core::math::UnitQuaternion;
-use amethyst::shrev::EventChannel;
-use amethyst::winit::{DeviceEvent, Event};
+use ::amethyst::controls::HideCursor;
+use ::amethyst::controls::WindowFocus;
+use ::amethyst::core::math::UnitQuaternion;
+use ::amethyst::shrev::EventChannel;
+use ::amethyst::winit::{DeviceEvent, Event};
 
-use amethyst::core::*;
-use amethyst::ecs::*;
+use ::amethyst::core::*;
+use ::amethyst::ecs::*;
 
 use serde::Serialize;
 

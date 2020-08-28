@@ -1,7 +1,7 @@
-use amethyst::core::math::UnitQuaternion;
+use ::amethyst::core::math::UnitQuaternion;
 
-use amethyst::core::*;
-use amethyst::ecs::*;
+use ::amethyst::core::*;
+use ::amethyst::ecs::*;
 
 #[derive(Default, new)]
 pub struct UprightTag;

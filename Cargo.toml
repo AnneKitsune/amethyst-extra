@@ -16,8 +16,10 @@ default = ["discord"]
 discord = ["discord-rpc-client"]
 
 [dependencies]
-amethyst = { git = "https://github.com/jojolepro/amethyst", branch = "hoppinworld", features = ["gltf", "animation", "vulkan", "nightly"] }
-specs-physics = { git = "https://github.com/jojolepro/specs-physics", branch = "0.4.0", features = ["amethyst", "dim3"] }
+#amethyst = { git = "https://github.com/jojolepro/amethyst", branch = "hoppinworld", features = ["gltf", "animation", "vulkan", "nightly"] }
+amethyst = { git = "https://github.com/amethyst/amethyst", branch = "master", features = ["gltf", "animation", "vulkan"] }
+#specs-physics = { git = "https://github.com/jojolepro/specs-physics", branch = "0.4.0", features = ["amethyst", "dim3"] }
+specs-physics = { git = "https://github.com/amethyst/specs-physics", branch = "master", features = ["amethyst"] }
 crossbeam-channel = "0.3.1"
 discord-rpc-client = { version = "0.3.0", optional = true }
 partial_function = "0.4.0"
@@ -32,7 +34,7 @@ crossterm = "0.4.2"
 rand = "0.5.5"
 lazy_static = "1.1.0"
 derive-new = "0.5"
-roman = "0.1.6"
+#roman = "0.1.6"
 hyper = "0.12.11"
 hyper-tls = "0.3.1"
 tokio = "0.1.7"

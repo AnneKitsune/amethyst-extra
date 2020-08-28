@@ -1,4 +1,4 @@
-use amethyst::ecs::World;
+use ::amethyst::ecs::World;
 use discord_rpc_client::Client as DiscordClient;
 use std::sync::mpsc::*;
 use std::sync::Mutex;

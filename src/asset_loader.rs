@@ -1,6 +1,6 @@
-use amethyst::assets::*;
+use ::amethyst::assets::*;
 
-use amethyst::ecs::*;
+use ::amethyst::ecs::*;
 
 use std::collections::HashMap;
 use std::fs;

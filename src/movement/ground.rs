@@ -1,6 +1,6 @@
-use amethyst::core::timing::Time;
-use amethyst::core::*;
-use amethyst::ecs::*;
+use ::amethyst::core::timing::Time;
+use ::amethyst::core::*;
+use ::amethyst::ecs::*;
 
 use serde::Serialize;
 

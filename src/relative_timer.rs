@@ -1,7 +1,7 @@
 use crate::sec_to_display;
 
-use amethyst::core::Time;
-use amethyst::ecs::{Read, System, Write};
+use ::amethyst::core::Time;
+use ::amethyst::ecs::{Read, System, Write};
 
 /// Calculates in relative time using the internal engine clock.
 #[derive(Default, Serialize)]

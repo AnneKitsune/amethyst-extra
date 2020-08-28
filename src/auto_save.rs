@@ -1,4 +1,4 @@
-use amethyst::ecs::*;
+use ::amethyst::ecs::*;
 
 use dirty::Dirty;
 

@@ -10,7 +10,7 @@ pub extern crate dirty;
 extern crate fern;
 pub extern crate partial_function;
 pub extern crate rand;
-extern crate roman;
+//extern crate roman;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -32,6 +32,7 @@ mod follow_mouse;
 mod movement;
 mod noclip;
 mod relative_timer;
+mod time_driver;
 mod terminal;
 mod time_control;
 mod ui_timer;
@@ -46,18 +47,19 @@ pub use self::follow_mouse::*;
 pub use self::movement::*;
 pub use self::noclip::*;
 pub use self::relative_timer::*;
+pub use self::time_driver::*;
 pub use self::terminal::*;
 pub use self::time_control::*;
 pub use self::ui_timer::*;
 
-use amethyst::core::math::{Point3, Vector3};
-use amethyst::gltf::VerticeData;
+use ::amethyst::core::math::{Point3, Vector3};
+use ::amethyst::gltf::VerticeData;
 
-use amethyst::ecs::*;
+use ::amethyst::ecs::*;
 
-use amethyst::prelude::*;
+use ::amethyst::prelude::*;
 
-use amethyst::utils::removal::Removal;
+use ::amethyst::utils::removal::Removal;
 
 use hyper::client::HttpConnector;
 use hyper::{Body, Chunk, Client, Request, Response};
@@ -154,8 +156,8 @@ pub fn exec_http_request(
     request: Request<Body>,
     future_runtime: &mut Runtime,
     callback_queue: &CallbackQueue,
-    on_success: Box<dyn Fn(Response<Body>) -> Box<dyn Fn(&mut World) + Send> + Send>,
-    on_error: Box<dyn Fn(hyper::Error) -> Box<dyn Fn(&mut World) + Send> + Send>,
+    on_success: Box<dyn Fn(Response<Body>) -> Box<dyn FnOnce(&mut World) + Send> + Send>,
+    on_error: Box<dyn Fn(hyper::Error) -> Box<dyn FnOnce(&mut World) + Send> + Send>,
 ) {
     let send_handle1 = callback_queue.send_handle();
     let send_handle2 = callback_queue.send_handle();

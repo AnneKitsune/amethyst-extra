@@ -1,4 +1,4 @@
-use amethyst::core::math::{Vector2, Vector3};
+use ::amethyst::core::math::{Vector2, Vector3};
 
 /// Accelerates the given `relative` vector by the given `acceleration` and `input`.
 /// The `maximum_velocity` is only taken into account for the projection of the acceleration vector on the `relative` vector.

@@ -1,10 +1,10 @@
 use crate::movement::*;
-use amethyst::core::math::{Vector2, Vector3};
+use ::amethyst::core::math::{Vector2, Vector3};
 
-use amethyst::core::timing::Time;
-use amethyst::core::*;
-use amethyst::ecs::*;
-use amethyst::input::*;
+use ::amethyst::core::timing::Time;
+use ::amethyst::core::*;
+use ::amethyst::ecs::*;
+use ::amethyst::input::*;
 
 use serde::Serialize;
 

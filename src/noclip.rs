@@ -1,11 +1,11 @@
-use amethyst::controls::FlyControlTag;
+use ::amethyst::controls::FlyControlTag;
 
-use amethyst::renderer::{camera::ActiveCamera, Camera};
-use amethyst::shrev::EventChannel;
+use ::amethyst::renderer::{camera::ActiveCamera, Camera};
+use ::amethyst::shrev::EventChannel;
 
-use amethyst::core::*;
-use amethyst::ecs::*;
-use amethyst::input::*;
+use ::amethyst::core::*;
+use ::amethyst::ecs::*;
+use ::amethyst::input::*;
 
 use serde::Serialize;
 

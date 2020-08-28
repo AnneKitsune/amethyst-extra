@@ -1,10 +1,10 @@
 use crate::movement::ground::Grounded;
-use amethyst::core::math::Vector3;
+use ::amethyst::core::math::Vector3;
 
-use amethyst::core::timing::Time;
+use ::amethyst::core::timing::Time;
 
-use amethyst::ecs::*;
-use amethyst::input::*;
+use ::amethyst::ecs::*;
+use ::amethyst::input::*;
 
 use partial_function::*;
 

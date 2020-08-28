@@ -1,9 +1,9 @@
-use amethyst::shrev::EventChannel;
+use ::amethyst::shrev::EventChannel;
 
-use amethyst::core::timing::Time;
+use ::amethyst::core::timing::Time;
 
-use amethyst::ecs::*;
-use amethyst::input::*;
+use ::amethyst::ecs::*;
+use ::amethyst::input::*;
 
 use serde::Serialize;
 

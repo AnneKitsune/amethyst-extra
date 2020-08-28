@@ -1,6 +1,6 @@
-use amethyst::ecs::*;
+use ::amethyst::ecs::*;
 
-use amethyst::ui::UiText;
+use ::amethyst::ui::UiText;
 
 use std::marker::PhantomData;
 
